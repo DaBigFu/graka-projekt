@@ -8,6 +8,19 @@
 *.jpg
 *.png
 
+*.done
+*.bak
+*.rpt
+*.summary
+*.pin
+*.sof
+*.txt
+*.qdf
+*.ddb
+incremental_db/
+simulation/
+db/
+
 #################
 ## Eclipse
 #################
