@@ -12,8 +12,8 @@ entity RS232_test is
            RX_Data  : out  STD_LOGIC_VECTOR (7 downto 0);
            RX_Busy  : out  STD_LOGIC;
            TXD      : out  STD_LOGIC;
-           TX_Data  : in   STD_LOGIC_VECTOR (7 downto 0);
-           TX_Start : in   STD_LOGIC;
+           TX_Data  : in   STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+           TX_Start : in   STD_LOGIC := '0';
            TX_Busy  : out  STD_LOGIC;
            CLK      : in   STD_LOGIC
            );
@@ -73,7 +73,15 @@ begin
          end if;
       end if;
    end process;
-   RX_Data <= rxsr;
+   -- RX_Data <= rxsr;
    RX_Busy <= '1' when (rxbitcnt<9) else '0';
+	
+	-- Nachricht halten
+	process(CLK, rxsr)
+	begin
+		if (rising_edge(CLK) and not(rxsr = "00000000"))then
+			RX_Data <= rxsr;
+		end if;
+	end process;
 
 end Behavioral;
