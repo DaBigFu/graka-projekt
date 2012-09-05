@@ -214,7 +214,7 @@ applicable agreement for further details.
 		(type "PARAMETER_SIGNED_DEC")	)
 	(parameter
 		"Baudrate"
-		"14400"
+		"115200"
 		""
 		(type "PARAMETER_SIGNED_DEC")	)
 	(drawing
