@@ -40,7 +40,7 @@ applicable agreement for further details.
 	(input)
 	(rect -8 232 160 248)
 	(text "INPUT" (rect 125 0 153 10)(font "Arial" (font_size 6)))
-	(text "UART_TXD" (rect 5 0 60 12)(font "Arial" ))
+	(text "UART_RXD" (rect 5 0 62 12)(font "Arial" ))
 	(pt 168 8)
 	(drawing
 		(line (pt 84 12)(pt 109 12))
@@ -108,7 +108,7 @@ applicable agreement for further details.
 	(output)
 	(rect 664 264 840 280)
 	(text "OUTPUT" (rect 1 0 39 10)(font "Arial" (font_size 6)))
-	(text "UART_RXD" (rect 90 0 147 12)(font "Arial" ))
+	(text "UART_TXD" (rect 90 0 145 12)(font "Arial" ))
 	(pt 0 8)
 	(drawing
 		(line (pt 0 8)(pt 52 8))
@@ -120,6 +120,32 @@ applicable agreement for further details.
 		(line (pt 78 12)(pt 82 8))
 	)
 	(annotation_block (location)(rect 840 280 896 296))
+)
+(symbol
+	(rect 440 344 488 376)
+	(text "NOT" (rect 27 0 47 10)(font "Arial" (font_size 6)))
+	(text "inst1" (rect 22 21 45 33)(font "Arial" ))
+	(port
+		(pt 48 16)
+		(input)
+		(text "IN" (rect 2 7 13 19)(font "Courier New" (bold))(invisible))
+		(text "IN" (rect 35 7 46 19)(font "Courier New" (bold))(invisible))
+		(line (pt 48 16)(pt 35 16))
+	)
+	(port
+		(pt 0 16)
+		(output)
+		(text "OUT" (rect 32 7 49 19)(font "Courier New" (bold))(invisible))
+		(text "OUT" (rect -1 7 16 19)(font "Courier New" (bold))(invisible))
+		(line (pt 9 16)(pt 0 16))
+	)
+	(drawing
+		(line (pt 35 25)(pt 35 7))
+		(line (pt 35 7)(pt 17 16))
+		(line (pt 35 25)(pt 17 16))
+		(circle (rect 9 12 17 20))
+	)
+	(flipy)
 )
 (symbol
 	(rect 368 208 608 336)
@@ -188,65 +214,97 @@ applicable agreement for further details.
 		(type "PARAMETER_SIGNED_DEC")	)
 	(parameter
 		"Baudrate"
-		"9600"
+		"14400"
 		""
 		(type "PARAMETER_SIGNED_DEC")	)
 	(drawing
 		(rectangle (rect 16 16 224 112))
 	)
-	(annotation_block (parameter)(rect 608 160 864 208))
-)
-(symbol
-	(rect 200 224 248 256)
-	(text "NOT" (rect 1 0 21 10)(font "Arial" (font_size 6)))
-	(text "inst1" (rect 3 21 26 33)(font "Arial" ))
-	(port
-		(pt 0 16)
-		(input)
-		(text "IN" (rect 2 7 13 19)(font "Courier New" (bold))(invisible))
-		(text "IN" (rect 2 7 13 19)(font "Courier New" (bold))(invisible))
-		(line (pt 0 16)(pt 13 16))
-	)
-	(port
-		(pt 48 16)
-		(output)
-		(text "OUT" (rect 32 7 49 19)(font "Courier New" (bold))(invisible))
-		(text "OUT" (rect 32 7 49 19)(font "Courier New" (bold))(invisible))
-		(line (pt 39 16)(pt 48 16))
-	)
-	(drawing
-		(line (pt 13 25)(pt 13 7))
-		(line (pt 13 7)(pt 31 16))
-		(line (pt 13 25)(pt 31 16))
-		(circle (rect 31 12 39 20))
-	)
+	(annotation_block (parameter)(rect 608 160 861 202))
 )
 (connector
 	(pt 320 288)
 	(pt 368 288)
 )
 (connector
-	(pt 608 256)
-	(pt 664 256)
+	(pt 608 288)
+	(pt 664 288)
+)
+(connector
+	(pt 160 240)
+	(pt 368 240)
+)
+(connector
+	(pt 632 240)
+	(pt 632 216)
+	(bus)
+)
+(connector
+	(pt 632 216)
+	(pt 936 216)
+	(bus)
+)
+(connector
+	(pt 608 240)
+	(pt 632 240)
+	(bus)
+)
+(connector
+	(pt 632 240)
+	(pt 664 240)
+	(bus)
+)
+(connector
+	(pt 936 216)
+	(pt 936 128)
+	(bus)
+)
+(connector
+	(pt 936 128)
+	(pt 320 128)
+	(bus)
+)
+(connector
+	(pt 320 128)
+	(pt 320 256)
+	(bus)
+)
+(connector
+	(pt 320 256)
+	(pt 368 256)
+	(bus)
 )
 (connector
 	(pt 608 272)
 	(pt 664 272)
 )
 (connector
-	(pt 608 288)
-	(pt 664 288)
+	(pt 608 256)
+	(pt 640 256)
 )
 (connector
-	(pt 608 240)
-	(pt 664 240)
-	(bus)
+	(pt 640 256)
+	(pt 664 256)
 )
 (connector
-	(pt 160 240)
-	(pt 200 240)
+	(pt 344 272)
+	(pt 368 272)
 )
 (connector
-	(pt 248 240)
-	(pt 368 240)
+	(pt 344 360)
+	(pt 440 360)
 )
+(connector
+	(pt 344 272)
+	(pt 344 360)
+)
+(connector
+	(pt 640 360)
+	(pt 488 360)
+)
+(connector
+	(pt 640 256)
+	(pt 640 360)
+)
+(junction (pt 632 240))
+(junction (pt 640 256))

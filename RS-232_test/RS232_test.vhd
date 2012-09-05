@@ -6,7 +6,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity RS232_test is
     Generic ( Quarz_Taktfrequenz : integer   := 50000000;  -- Hertz 
-              Baudrate           : integer   :=  9600      -- Bits/Sec
+              Baudrate           : integer   := 14400      -- Bits/Sec 9600
              ); 
     Port ( RXD      : in   STD_LOGIC;
            RX_Data  : out  STD_LOGIC_VECTOR (7 downto 0);
@@ -73,15 +73,15 @@ begin
          end if;
       end if;
    end process;
-   -- RX_Data <= rxsr;
+   RX_Data <= rxsr;
    RX_Busy <= '1' when (rxbitcnt<9) else '0';
 	
-	-- Nachricht halten
-	process(CLK, rxsr)
-	begin
-		if (rising_edge(CLK) and not(rxsr = "00000000"))then
-			RX_Data <= rxsr;
-		end if;
-	end process;
+--	-- Nachricht halten
+--	process(CLK, rxsr)
+--	begin
+--		if (rising_edge(CLK) and not(rxsr = "00000000"))then
+--			RX_Data <= rxsr;
+--		end if;
+--	end process;
 
 end Behavioral;

@@ -3,17 +3,18 @@
  <debug showDebugMenu="0" />
  <systemtable>
   <columns>
-   <connections preferredWidth="111" />
+   <connections preferredWidth="127" />
    <irq preferredWidth="34" />
   </columns>
  </systemtable>
  <clocktable>
   <columns>
-   <clockname preferredWidth="478" />
-   <clocksource preferredWidth="477" />
-   <frequency preferredWidth="459" />
+   <clockname preferredWidth="428" />
+   <clocksource preferredWidth="428" />
+   <frequency preferredWidth="411" />
   </columns>
  </clocktable>
- <window width="1874" height="1096" x="-8" y="-8" />
- <library expandedCategories="Project,Library,Library/Embedded Processors" />
+ <window width="1858" height="1080" x="0" y="0" />
+ <library
+   expandedCategories="Library/Memories and Memory Controllers/External Memory Interfaces,Library/Memories and Memory Controllers/External Memory Interfaces/LPDDR2 Interfaces,Library/Memories and Memory Controllers,Library/Configuration &amp; Programming,Library/Bridges/Memory Mapped,Library/Memories and Memory Controllers/External Memory Interfaces/DDR3 Interfaces,Library/Peripherals,Library/Qsys Interconnect,Library/Interface Protocols/Ethernet/Example Designs,Library/DSP,Library/Verification/Simulation,Project,Library/Interface Protocols/Ethernet/Submodules,Library/Interface Protocols/Ethernet/Example,Library/Memories and Memory Controllers/External Memory Interfaces/RLDRAM II Interfaces,Library/Interface Protocols/Ethernet,Library/Memories and Memory Controllers/External Memory Interfaces/Pattern Generators,Library/Memories and Memory Controllers/External Memory Interfaces/SDRAM Interfaces,Library/Window Bridge,Library/Memories and Memory Controllers/External Memory Interfaces/QDR II Interfaces,Library/Qsys Interconnect/Interrupt,Library/Interface Protocols/SDI,Library/DSP/Error Detection_Correction,Library/Interface Protocols/Serial,Library/Interface Protocols/Transceiver PHY,Library/SLS/Communication/USB,Library/Memories and Memory Controllers/External Memory Interfaces/Memory Models,Library/DSP/Video and Image Processing,Library/Bridges/DMA,Library/SLS,Library/Memories and Memory Controllers/External Memory Interfaces/Performance Monitors,Library/Memories and Memory Controllers/External Memory Interfaces/DDR2 Interfaces,Library/Peripherals/Debug and Performance,Library/Peripherals/Microcontroller Peripherals,Library/SLS/Communication,Library/Qsys Interconnect/Tri-State Components,Library/Peripherals/Display,Library,Library/Memories and Memory Controllers/External Memory Interfaces/DDR Interfaces,Library/Bridges,Library/Verification,Library/Clock and Reset,Library/Interface Protocols/PCI,Library/Bridges/Streaming,Library/Interface Protocols,Library/Memories and Memory Controllers/On-Chip,Library/PLL,Library/Memories and Memory Controllers/External Memory Interfaces/Flash Interfaces,Library/Qsys Interconnect/Memory-Mapped,Library/Embedded Processors,Library/Interface Protocols/Interlaken" />
 </preferences>
