@@ -22,7 +22,7 @@ function varargout = graka_gui(varargin)
 
 % Edit the above text to modify the response to help graka_gui
 
-% Last Modified by GUIDE v2.5 06-Sep-2012 18:05:19
+% Last Modified by GUIDE v2.5 06-Sep-2012 17:15:14
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -81,7 +81,7 @@ function com_baud_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of com_baud as text
 %        str2double(get(hObject,'String')) returns contents of com_baud as a double
-handles.ser.baud_rate = str2double(get(hObject,'String'));
+
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -107,22 +107,10 @@ switch handles.ser.status
     case 1
         handles.ser.open_port();
         set(handles.com_connect_butt, 'String', 'close port');
-        set(handles.check_board_butt, 'Enable', 'on');
+        set(handles.check_board_butt, 'Eanble', 'on');
         set(handles.ser_port_sel_drop, 'Enable', 'off');
         set(handles.com_baud, 'Enable', 'off');
-        set(handles.com_status,'String', handles.ser.get_status_string());
-        set(handles.com_status,'BackgroundColor', [0.87 0.49 0]);
-    case 2
-        handles.ser.close_port();
-        set(handles.com_connect_butt, 'String', 'open port');
-        set(handles.check_board_butt, 'Enable', 'off');
-        set(handles.ser_port_sel_drop, 'Enable', 'on');
-        set(handles.com_baud, 'Enable', 'on');
-        set(handles.com_status,'String', handles.ser.get_status_string());
-        set(handles.com_status,'BackgroundColor', 'red');
-    otherwise
-        %tbd
-end
+        
     
     
 guidata(hObject, handles);
@@ -135,8 +123,8 @@ function ser_port_sel_drop_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns ser_port_sel_drop contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from ser_port_sel_drop
-ports = get(hObject,'String');
-handles.ser.com_port = ports{get(hObject,'Value')};
+ports = cellstr(get(hObject,'String'));
+handles.com_port = ports(get(hObject,'Value'));
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -150,6 +138,7 @@ function ser_port_sel_drop_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+handles.com_port = 'COM1';
 guidata(hObject, handles);
 
 
@@ -158,11 +147,11 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.ser.close_port();
+fclose(handles.ser);
 
 
-% --- Executes on button press in check_board_butt.
-function check_board_butt_Callback(hObject, eventdata, handles)
-% hObject    handle to check_board_butt (see GCBO)
+% --- Executes on button press in check_board.
+function check_board_Callback(hObject, eventdata, handles)
+% hObject    handle to check_board (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)

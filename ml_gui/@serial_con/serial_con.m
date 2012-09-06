@@ -15,14 +15,18 @@ classdef serial_con < handle
         ser_port;
     end
     
-    properties (Constant, GetAccess = public)
-        %strings to display in GUI with obj.status_strings(obj.status)
-        stauts_strings = { 'not opened'...
+    properties (Constant, GetAccess = protected)
+        %strings to display in GUI with obj.status_strings{obj.status}
+        status_strings = { 'not opened'...
                             'COM port opened'...
                             'board found' };
     end
     
     methods
+        %returns a text status for use in GUI
+        function status_string = get_status_string(obj)
+            status_string = obj.status_strings{obj.status};
+        end
         %##################################################################
         %Set & get for the dependent properties
         function obj = set.baud_rate(obj, n_baud)
@@ -41,7 +45,7 @@ classdef serial_con < handle
             if (obj.status == 1)
                 set(obj.ser_port, 'Port', n_port);
             else
-                disp('Tried to com_port on already opened port, YSNST');
+                disp('Tried to set com_port on already opened port, YSNST');
             end
         end
         
@@ -55,7 +59,7 @@ classdef serial_con < handle
                 fopen(obj.ser_port);
                 obj.status = 2;
             else
-                disp('Tried open port on already opened port, YSNST');
+                disp('Tried to open port on already opened port, YSNST');
             end
         end
         
@@ -64,7 +68,7 @@ classdef serial_con < handle
                 fclose(obj.ser_port);
                 obj.status = 1;
             else
-                disp('Tried close port that was not open, YSNST');
+                disp('Tried to close port that was not open, YSNST');
             end
         end
         %##################################################################
