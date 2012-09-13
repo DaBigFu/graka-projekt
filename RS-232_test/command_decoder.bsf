@@ -75,9 +75,16 @@ applicable agreement for further details.
 	(port
 		(pt 400 64)
 		(output)
+		(text "dbg_pic_cnt_out[3..0]" (rect 0 0 148 12)(font "Arial" ))
+		(text "dbg_pic_cnt_out[3..0]" (rect 231 59 379 71)(font "Arial" ))
+		(line (pt 400 64)(pt 384 64)(line_width 3))
+	)
+	(port
+		(pt 400 80)
+		(output)
 		(text "TX_start" (rect 0 0 56 12)(font "Arial" ))
-		(text "TX_start" (rect 323 59 379 71)(font "Arial" ))
-		(line (pt 400 64)(pt 384 64)(line_width 1))
+		(text "TX_start" (rect 323 75 379 87)(font "Arial" ))
+		(line (pt 400 80)(pt 384 80)(line_width 1))
 	)
 	(parameter
 		"data_width"

@@ -13,6 +13,7 @@ entity command_decoder is
         data_in     	: in std_logic_vector(data_width-1 downto 0);
         data_out 		: out std_logic_vector(data_width-1 downto 0);
 		  dbg_pic_out	: out std_logic_vector(11 downto 0);
+		  dbg_pic_cnt_out : out std_logic_vector(3 downto 0);
         TX_start 		: out std_logic;
         reset        : in std_logic;
         rx_busy     	: in std_logic;
@@ -35,6 +36,8 @@ architecture beh of command_decoder is
 
 begin
 	dbg_pic_out <= pic_buffer(0);
+	
+	dbg_pic_cnt_out <= std_logic_vector(to_unsigned(recieved_pic_counter, dbg_pic_cnt_out'length));
 
     --------------------------------------------------------------------
     --------------------------------------------------------------------
@@ -66,6 +69,7 @@ begin
 							decoded_com <= check_com;
 							next_state <= s_transmit_response;
 							rx_busy_last <= '0';
+							
 					 elsif rx_busy = '0' and rx_busy_last = '1' AND data_in = x"02" then
 							decoded_com <= start_pic;
 							next_state <= s_recieve_pic;
@@ -89,6 +93,7 @@ begin
 					rx_busy_last <= '1';
 					next_state <= s_recieve_pic;
                elsif rx_busy = '0' and rx_busy_last = '1' then
+						rx_busy_last <= '0';
 						ram_sort : case recieved_pic_counter is
 							when 0 =>
 								pic_buffer(0)(11 downto 8) <= data_in(3 downto 0);

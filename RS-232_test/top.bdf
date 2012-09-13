@@ -34,7 +34,6 @@ applicable agreement for further details.
 		(line (pt 117 12)(pt 121 8))
 	)
 	(text "VCC" (rect 136 7 156 17)(font "Arial" (font_size 6)))
-	(annotation_block (location)(rect -72 296 -16 312))
 )
 (pin
 	(input)
@@ -51,7 +50,6 @@ applicable agreement for further details.
 		(line (pt 117 12)(pt 121 8))
 	)
 	(text "VCC" (rect 136 7 156 17)(font "Arial" (font_size 6)))
-	(annotation_block (location)(rect -64 248 -8 264))
 )
 (pin
 	(input)
@@ -68,7 +66,6 @@ applicable agreement for further details.
 		(line (pt 117 12)(pt 121 8))
 	)
 	(text "VCC" (rect 136 7 156 17)(font "Arial" (font_size 6)))
-	(annotation_block (location)(rect 432 584 488 600))
 )
 (pin
 	(output)
@@ -85,7 +82,6 @@ applicable agreement for further details.
 		(line (pt 82 8)(pt 78 12))
 		(line (pt 78 12)(pt 82 8))
 	)
-	(annotation_block (location)(rect 1144 248 1200 264))
 )
 (pin
 	(output)
@@ -102,7 +98,6 @@ applicable agreement for further details.
 		(line (pt 82 8)(pt 78 12))
 		(line (pt 78 12)(pt 82 8))
 	)
-	(annotation_block (location)(rect 1144 264 1200 280))
 )
 (pin
 	(output)
@@ -119,7 +114,6 @@ applicable agreement for further details.
 		(line (pt 82 8)(pt 78 12))
 		(line (pt 78 12)(pt 82 8))
 	)
-	(annotation_block (location)(rect 1144 296 1200 312))
 )
 (pin
 	(output)
@@ -136,7 +130,6 @@ applicable agreement for further details.
 		(line (pt 82 8)(pt 78 12))
 		(line (pt 78 12)(pt 82 8))
 	)
-	(annotation_block (location)(rect 1144 280 1200 296))
 )
 (pin
 	(output)
@@ -175,6 +168,22 @@ applicable agreement for further details.
 	(rect 1224 632 1400 648)
 	(text "OUTPUT" (rect 1 0 39 10)(font "Arial" (font_size 6)))
 	(text "HEX0[7..0]" (rect 90 0 143 12)(font "Arial" ))
+	(pt 0 8)
+	(drawing
+		(line (pt 0 8)(pt 52 8))
+		(line (pt 52 4)(pt 78 4))
+		(line (pt 52 12)(pt 78 12))
+		(line (pt 52 12)(pt 52 4))
+		(line (pt 78 4)(pt 82 8))
+		(line (pt 82 8)(pt 78 12))
+		(line (pt 78 12)(pt 82 8))
+	)
+)
+(pin
+	(output)
+	(rect 304 568 480 584)
+	(text "OUTPUT" (rect 1 0 39 10)(font "Arial" (font_size 6)))
+	(text "HEX3[7..0]" (rect 90 0 143 12)(font "Arial" ))
 	(pt 0 8)
 	(drawing
 		(line (pt 0 8)(pt 52 8))
@@ -317,9 +326,16 @@ applicable agreement for further details.
 	(port
 		(pt 0 64)
 		(output)
+		(text "dbg_pic_cnt_out[3..0]" (rect 0 0 106 12)(font "Arial" ))
+		(text "dbg_pic_cnt_out[3..0]" (rect 21 59 110 71)(font "Arial" ))
+		(line (pt 0 64)(pt 16 64)(line_width 3))
+	)
+	(port
+		(pt 0 80)
+		(output)
 		(text "TX_start" (rect 0 0 40 12)(font "Arial" ))
-		(text "TX_start" (rect 21 59 54 71)(font "Arial" ))
-		(line (pt 0 64)(pt 16 64))
+		(text "TX_start" (rect 21 75 54 87)(font "Arial" ))
+		(line (pt 0 80)(pt 16 80))
 	)
 	(parameter
 		"data_width"
@@ -347,7 +363,7 @@ applicable agreement for further details.
 		(pt 216 32)
 		(output)
 		(text "decout[7..0]" (rect 0 0 59 12)(font "Arial" ))
-		(text "decout[7..0]" (rect 146 27 205 39)(font "Arial" ))
+		(text "decout[7..0]" (rect 146 27 195 39)(font "Arial" ))
 		(line (pt 216 32)(pt 200 32)(line_width 3))
 	)
 	(drawing
@@ -369,7 +385,7 @@ applicable agreement for further details.
 		(pt 216 32)
 		(output)
 		(text "decout[7..0]" (rect 0 0 59 12)(font "Arial" ))
-		(text "decout[7..0]" (rect 146 27 205 39)(font "Arial" ))
+		(text "decout[7..0]" (rect 146 27 195 39)(font "Arial" ))
 		(line (pt 216 32)(pt 200 32)(line_width 3))
 	)
 	(drawing
@@ -391,7 +407,29 @@ applicable agreement for further details.
 		(pt 216 32)
 		(output)
 		(text "decout[7..0]" (rect 0 0 59 12)(font "Arial" ))
-		(text "decout[7..0]" (rect 146 27 205 39)(font "Arial" ))
+		(text "decout[7..0]" (rect 146 27 195 39)(font "Arial" ))
+		(line (pt 216 32)(pt 200 32)(line_width 3))
+	)
+	(drawing
+		(rectangle (rect 16 16 200 80))
+	)
+)
+(symbol
+	(rect 64 544 280 640)
+	(text "ss_decoder" (rect 5 0 61 12)(font "Arial" ))
+	(text "inst5" (rect 8 80 31 92)(font "Arial" ))
+	(port
+		(pt 0 32)
+		(input)
+		(text "decin[3..0]" (rect 0 0 51 12)(font "Arial" ))
+		(text "decin[3..0]" (rect 21 27 72 39)(font "Arial" ))
+		(line (pt 0 32)(pt 16 32)(line_width 3))
+	)
+	(port
+		(pt 216 32)
+		(output)
+		(text "decout[7..0]" (rect 0 0 59 12)(font "Arial" ))
+		(text "decout[7..0]" (rect 146 27 195 39)(font "Arial" ))
 		(line (pt 216 32)(pt 200 32)(line_width 3))
 	)
 	(drawing
@@ -514,14 +552,6 @@ applicable agreement for further details.
 	(pt 704 576)
 )
 (connector
-	(pt 240 464)
-	(pt 280 464)
-)
-(connector
-	(pt 240 272)
-	(pt 240 464)
-)
-(connector
 	(text "dbg_pic[11..0]" (rect 154 432 223 444)(font "Arial" ))
 	(pt 280 448)
 	(pt 144 448)
@@ -559,6 +589,34 @@ applicable agreement for further details.
 	(pt 880 528)
 	(pt 984 528)
 	(bus)
+)
+(connector
+	(pt 280 464)
+	(pt 32 464)
+	(bus)
+)
+(connector
+	(pt 32 464)
+	(pt 32 576)
+	(bus)
+)
+(connector
+	(pt 32 576)
+	(pt 64 576)
+	(bus)
+)
+(connector
+	(pt 280 576)
+	(pt 304 576)
+	(bus)
+)
+(connector
+	(pt 240 272)
+	(pt 240 480)
+)
+(connector
+	(pt 240 480)
+	(pt 280 480)
 )
 (junction (pt 344 288))
 (junction (pt 712 240))
