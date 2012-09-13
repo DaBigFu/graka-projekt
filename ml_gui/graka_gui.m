@@ -22,7 +22,7 @@ function varargout = graka_gui(varargin)
 
 % Edit the above text to modify the response to help graka_gui
 
-% Last Modified by GUIDE v2.5 06-Sep-2012 18:05:19
+% Last Modified by GUIDE v2.5 13-Sep-2012 19:00:44
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -179,4 +179,66 @@ else
 end
     
     
+guidata(hObject, handles);
+
+
+
+function edit_first_12bit_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_first_12bit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_first_12bit as text
+%        str2double(get(hObject,'String')) returns contents of edit_first_12bit as a double
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit_first_12bit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_first_12bit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+guidata(hObject, handles);
+
+
+function edit_second_12bit_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_second_12bit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_second_12bit as text
+%        str2double(get(hObject,'String')) returns contents of edit_second_12bit as a double
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit_second_12bit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_second_12bit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+guidata(hObject, handles);
+
+% --- Executes on button press in pushbutton4.
+function pushbutton4_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.ser.write_command(2);
+str_1 = get(handles.edit_first_12bit, 'string');
+str_2 = get(handles.edit_second_12bit, 'string');
+handles.ser.write_char(str_1(1));
+handles.ser.write_char(str_1(2));
+handles.ser.write_char(str_2(1));
+handles.ser.write_char(str_2(2));
+
 guidata(hObject, handles);
