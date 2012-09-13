@@ -81,7 +81,7 @@ applicable agreement for further details.
 	)
 	(parameter
 		"Quarz_Taktfrequenz"
-		"50000000"
+		"100000000"
 		""
 		(type "PARAMETER_SIGNED_DEC")	)
 	(parameter

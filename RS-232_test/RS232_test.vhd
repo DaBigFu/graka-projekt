@@ -5,7 +5,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity RS232_test is
-    Generic ( Quarz_Taktfrequenz : integer   := 50000000;  -- Hertz 
+    Generic ( Quarz_Taktfrequenz : integer   := 100000000;  -- Hertz 
               Baudrate           : integer   := 14400      -- Bits/Sec 9600
              ); 
     Port ( RXD      : in   STD_LOGIC;

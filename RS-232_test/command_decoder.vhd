@@ -55,7 +55,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-   next_state_logic : process (current_state, rx_busy, data_in, tx_busy)
+   next_state_logic : process (clk, current_state, rx_busy, data_in, tx_busy)
    begin
 		if clk'event and clk = '1' then
         case current_state is
@@ -92,25 +92,30 @@ begin
 					if rx_busy = '1' then
 					rx_busy_last <= '1';
 					next_state <= s_recieve_pic;
+					
                elsif rx_busy = '0' and rx_busy_last = '1' then
 						rx_busy_last <= '0';
-						ram_sort : case recieved_pic_counter is
-							when 0 =>
+						
+						IF recieved_pic_counter = 0 then
 								pic_buffer(0)(11 downto 8) <= data_in(3 downto 0);
 								recieved_pic_counter <= recieved_pic_counter + 1;
-							when 1 =>
+								
+						elsif recieved_pic_counter = 1 then
 								pic_buffer(0)(7 downto 0) <= data_in;
 								recieved_pic_counter <= recieved_pic_counter + 1;
-							when 2 =>
+								
+						elsif recieved_pic_counter = 2 then
 								pic_buffer(1)(11 downto 8) <= data_in(3 downto 0);
 								recieved_pic_counter <= recieved_pic_counter + 1;
-							when 3 =>
+								
+						elsif recieved_pic_counter = 3 then
 								pic_buffer(1)(7 downto 0) <= data_in;
 								recieved_pic_counter <= recieved_pic_counter + 1;
-							when others =>
 								
-						end case ram_sort;
+						end if;
+						
 						next_state <= s_recieve_pic;
+						
 					elsif recieved_pic_counter > 3 then
 						recieved_pic_counter <= 0;
 						next_state <= s_wait_for_com;
@@ -130,7 +135,7 @@ begin
    output_logic : process (current_state)
 	
    begin
-	TX_start <= '0';
+	
 		case current_state is
 			when s_wait_for_com =>
 				data_out <= x"00";
@@ -139,6 +144,19 @@ begin
          when s_transmit_response =>
 				data_out <= x"06";
 				TX_start <= '1';
+				
+			when s_com_check =>
+				TX_start <= '0';
+			
+			when s_data_transfer =>
+				TX_start <= '0';
+			
+			when s_wait_for_tx =>
+				TX_start <= '0';
+			
+			when s_recieve_pic =>
+				TX_start <= '0';
+			
          when others =>
 				TX_start <= '0';
 				
