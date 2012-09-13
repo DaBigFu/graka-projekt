@@ -9,13 +9,13 @@ entity command_decoder is
     );
 
     port (
-        clk            : in std_logic;
-        data_in     : in std_logic_vector(data_width-1 downto 0);
-        data_out : out std_logic_vector(data_width-1 downto 0);
-        TX_start : out std_logic;
-        reset          : in std_logic;
-        rx_busy     : in std_logic;
-        tx_busy     : in std_logic
+        clk          : in std_logic;
+        data_in     	: in std_logic_vector(data_width-1 downto 0);
+        data_out 		: out std_logic_vector(data_width-1 downto 0);
+        TX_start 		: out std_logic;
+        reset        : in std_logic;
+        rx_busy     	: in std_logic;
+        tx_busy     	: in std_logic
     );
 end entity command_decoder;
 
@@ -34,9 +34,9 @@ begin
     --------------------------------------------------------------------
     --------------------------------------------------------------------
     --------------------------------------------------------------------
-    next_state_register : process(clk, reset, next_state)
+    next_state_register : process(clk, reset)
     begin
-        if (reset = '0') then
+        if (reset = '1') then
             current_state <= s_wait_for_com;
         elsif (clk'EVENT and clk = '1') then
             current_state <= next_state;
@@ -47,20 +47,25 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (current_state, rx_busy, rx_busy_last)
+    next_state_logic : process (current_state, rx_busy, rx_busy_last, data_in, tx_busy)
     begin
         case current_state is
             when s_wait_for_com =>
-                if rx_busy = '0' and rx_busy_last = '1' then
-                    next_state <= s_transmit_response;
+                if rx_busy = '0' and rx_busy_last = '1' AND data_in = x"05" then
+							decoded_com <= check_com;
+							next_state <= s_transmit_response;
+							rx_busy_last <= rx_busy;
                 else
                     next_state <= s_wait_for_com;
+						  rx_busy_last <= rx_busy;
                 end if;
 
-                rx_busy_last <= rx_busy;
-
-            when s_transmit_response =>
-                next_state <= s_transmit_response;
+           when s_transmit_response =>
+               if tx_busy = '1' then
+						next_state <= s_transmit_response;
+					else
+						next_state <= s_wait_for_com;
+					end if;
 
             when others =>
                 next_state <= s_wait_for_com;
@@ -72,25 +77,20 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    output_logic : process (clk, reset, current_state)
-
-    begin
-        if (reset = '0') then
-            TX_start <= '0';
-
-        elsif (clk'EVENT and clk = '1') then
-            case current_state is
-                when s_wait_for_com =>
-                    TX_start <= '0';
-                when s_transmit_response =>
-                    TX_start <= '0';
-                when others =>
+   output_logic : process (current_state)
+	
+   begin
+		case current_state is
+			when s_wait_for_com =>
+				data_out <= x"00";
+				TX_start <= '0';
+				
+         when s_transmit_response =>
+				data_out <= x"41";
+				TX_start <= '1';
+         when others =>
 
             end case;
-        end if;
-
-
-
     end process output_logic;
 
 

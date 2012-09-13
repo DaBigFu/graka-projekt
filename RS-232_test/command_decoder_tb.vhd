@@ -13,7 +13,7 @@ signal		data_out :  std_logic_vector(7 downto 0);
 signal		TX_start :  std_logic;
 signal		reset		:  std_logic;
 signal		rx_busy	:  std_logic := '0';
-signal		tx_busy	:	std_logic;
+signal		tx_busy	:	std_logic := '0';
 
 CONSTANT period : TIME := 20 ns;
 CONSTANT data_width : integer := 8;
@@ -37,6 +37,13 @@ generate_clock : PROCESS (clk)
 	BEGIN
 			clk <= NOT clk AFTER period/2;
 	END PROCESS;
+	
+tx_busy_gen : PROCESS (TX_start)
+	BEGIN
+		if TX_start'event and tx_start = '1' then
+			tx_busy <='1', '0' AFTER 50ns;
+		end if;
+end process tx_busy_gen;
 	
 reset <= '1', '0' AFTER 60ns;
 
