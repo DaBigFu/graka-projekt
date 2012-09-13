@@ -47,8 +47,9 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (current_state, rx_busy, data_in, tx_busy)
-    begin
+   next_state_logic : process (current_state, rx_busy, data_in, tx_busy)
+   begin
+		if clk'event and clk = '1' then
         case current_state is
             when s_wait_for_com =>
 					 if rx_busy = '1' then
@@ -76,6 +77,7 @@ begin
                 next_state <= s_wait_for_com;
 
         end case;
+		  end if;
     end process next_state_logic;
 
 
