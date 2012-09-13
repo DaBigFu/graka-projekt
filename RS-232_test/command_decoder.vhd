@@ -47,17 +47,19 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (current_state, rx_busy, rx_busy_last, data_in, tx_busy)
+    next_state_logic : process (current_state, rx_busy, data_in, tx_busy)
     begin
         case current_state is
             when s_wait_for_com =>
-                if rx_busy = '0' and rx_busy_last = '1' AND data_in = x"05" then
+					 if rx_busy = '1' then
+					 rx_busy_last <= '1';
+					 next_state <= s_wait_for_com;
+                elsif rx_busy = '0' and rx_busy_last = '1' AND data_in = x"05" then
 							decoded_com <= check_com;
 							next_state <= s_transmit_response;
-							rx_busy_last <= rx_busy;
+							rx_busy_last <= '0';
                 else
                     next_state <= s_wait_for_com;
-						  rx_busy_last <= rx_busy;
                 end if;
 
            when s_transmit_response =>
