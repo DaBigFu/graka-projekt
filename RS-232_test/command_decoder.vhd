@@ -22,7 +22,7 @@ end entity command_decoder;
 architecture beh of command_decoder is
 
     -- interne States
-    type states is (s_wait_for_com, s_com_check, s_data_transfer, s_transmit_response);
+    type states is (s_wait_for_com, s_com_check, s_data_transfer, s_transmit_response, s_wait_for_tx);
     signal current_state, next_state : states := s_wait_for_com;
 
      --interne Signale
@@ -62,9 +62,12 @@ begin
                     next_state <= s_wait_for_com;
                 end if;
 
-           when s_transmit_response =>
-               if tx_busy = '1' then
-						next_state <= s_transmit_response;
+				when s_transmit_response =>
+               next_state <= s_wait_for_tx;
+					
+				when s_wait_for_tx =>
+					if tx_busy = '1' then
+						next_state <= s_wait_for_tx;
 					else
 						next_state <= s_wait_for_com;
 					end if;
@@ -82,6 +85,7 @@ begin
    output_logic : process (current_state)
 	
    begin
+	TX_start <= '0';
 		case current_state is
 			when s_wait_for_com =>
 				data_out <= x"00";
