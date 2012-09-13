@@ -8,6 +8,8 @@
 *.jpg
 *.png
 
+*.asv
+
 *.done
 *.bak
 *.rpt

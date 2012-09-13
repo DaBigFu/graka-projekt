@@ -72,6 +72,38 @@ classdef serial_con < handle
             end
         end
         %##################################################################
+        %read/write functions
+        function write_char(obj, char)
+            if (obj.status == 1)
+                disp('tried to send data via closed port');
+            else
+                fwrite(obj.ser_port, char);
+            end
+        end
+        
+        function char = read_char(obj)
+            if (obj.status == 1)
+                disp('tried to send data via closed port');
+            else
+                char = fread(obj.ser_port);
+            end
+        end
+        
+        function new_status = check_com(obj)
+            if (obj.status == 1)
+                disp('tried to send data via closed port');
+            else
+                fprintf(obj.ser_port, '%c', 5);
+                if fread(obj.ser_port, 1, 'uchar') == 6
+                    obj.status = 3;
+                    new_status = 3;
+                else
+                    obj.status = 2;
+                    new_status = 2;
+                end
+            end
+        end
+        
     end
         
     methods

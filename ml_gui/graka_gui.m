@@ -166,3 +166,17 @@ function check_board_butt_Callback(hObject, eventdata, handles)
 % hObject    handle to check_board_butt (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles.ser.check_com;
+if handles.ser.status == 3
+    set(handles.com_status,'String', handles.ser.get_status_string());
+    set(handles.com_status,'BackgroundColor', 'green');
+elseif handles.ser.status == 2
+    set(handles.com_status,'String', handles.ser.get_status_string());
+    set(handles.com_status,'BackgroundColor', [0.87 0.49 0]);
+else
+    set(handles.com_status,'String', handles.ser.get_status_string());
+    set(handles.com_status,'BackgroundColor', 'red');
+end
+    
+    
+guidata(hObject, handles);

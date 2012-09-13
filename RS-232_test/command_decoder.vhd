@@ -94,7 +94,7 @@ begin
 				TX_start <= '0';
 				
          when s_transmit_response =>
-				data_out <= x"41";
+				data_out <= x"06";
 				TX_start <= '1';
          when others =>
 
