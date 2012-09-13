@@ -8,12 +8,13 @@ package graka_pack is
 
 --###########################################################################
 --constants
-constant c_COM_LENGTH : integer := 8;
+constant c_COM_LENGTH : integer range 0 to 16 := 8;
 
 --###########################################################################
 --types
-type t_rec_com is (start_text, end_text, check_com, unidentified);
+type t_rec_com is (start_pic, end_pic, check_com, unidentified);
 type t_command_array is ARRAY(0 to 2) of std_logic_vector(c_COM_LENGTH-1 downto 0);
+type t_pic_array is ARRAY(0 to 10) of std_logic_vector(11 downto 0);
 
 --###########################################################################
 --constants

@@ -89,6 +89,14 @@ classdef serial_con < handle
             end
         end
         
+        function write_command(obj, com)
+            if (obj.status == 1)
+                disp('tried to send data via closed port');
+            else
+                fprintf(obj.ser_port, '%c', com);
+            end
+        end
+        
         function new_status = check_com(obj)
             if (obj.status == 1)
                 disp('tried to send data via closed port');
