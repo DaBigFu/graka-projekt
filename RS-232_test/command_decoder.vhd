@@ -36,7 +36,7 @@ BEGIN
 	END PROCESS next_state_register;
 				
 	
-	next_state_logc : PROCESS (current_state, rx_busy, data_in)
+	next_state_logc : PROCESS (current_state, rx_busy, data_in, rx_busy_last)
 	BEGIN
 		CASE current_state IS
 			when s_wait_for_com =>
@@ -64,10 +64,10 @@ BEGIN
 	END PROCESS next_state_logc;
 
 	
-	output_logic : PROCESS (current_state)
+	output_logic : PROCESS (current_state, decoded_com)
 	BEGIN
 	TX_start <= '0';
-		CASE current_state I
+		CASE current_state IS
 			WHEN s_transmit_response =>
 				CASE decoded_com IS
 					WHEN check_com =>
