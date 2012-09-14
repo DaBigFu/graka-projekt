@@ -102,7 +102,7 @@ classdef serial_con < handle
                 disp('tried to send data via closed port');
             else
                 fprintf(obj.ser_port, '%c', 5);
-                if fread(obj.ser_port, 1, 'uchar') == 6
+                if fread(obj.ser_port, 1,'uchar') == 6
                     obj.status = 3;
                     new_status = 3;
                 else

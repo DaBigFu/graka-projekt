@@ -22,7 +22,7 @@ function varargout = graka_gui(varargin)
 
 % Edit the above text to modify the response to help graka_gui
 
-% Last Modified by GUIDE v2.5 13-Sep-2012 19:00:44
+% Last Modified by GUIDE v2.5 14-Sep-2012 13:31:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -106,23 +106,12 @@ function com_connect_butt_Callback(hObject, eventdata, handles)
 switch handles.ser.status
     case 1
         handles.ser.open_port();
-        set(handles.com_connect_butt, 'String', 'close port');
-        set(handles.check_board_butt, 'Enable', 'on');
-        set(handles.ser_port_sel_drop, 'Enable', 'off');
-        set(handles.com_baud, 'Enable', 'off');
-        set(handles.com_status,'String', handles.ser.get_status_string());
-        set(handles.com_status,'BackgroundColor', [0.87 0.49 0]);
-    case 2
+    case { 2, 3 }
         handles.ser.close_port();
-        set(handles.com_connect_butt, 'String', 'open port');
-        set(handles.check_board_butt, 'Enable', 'off');
-        set(handles.ser_port_sel_drop, 'Enable', 'on');
-        set(handles.com_baud, 'Enable', 'on');
-        set(handles.com_status,'String', handles.ser.get_status_string());
-        set(handles.com_status,'BackgroundColor', 'red');
     otherwise
-        %tbd
 end
+
+update_gui(handles);
     
     
 guidata(hObject, handles);
@@ -167,18 +156,7 @@ function check_board_butt_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.ser.check_com;
-if handles.ser.status == 3
-    set(handles.com_status,'String', handles.ser.get_status_string());
-    set(handles.com_status,'BackgroundColor', 'green');
-elseif handles.ser.status == 2
-    set(handles.com_status,'String', handles.ser.get_status_string());
-    set(handles.com_status,'BackgroundColor', [0.87 0.49 0]);
-else
-    set(handles.com_status,'String', handles.ser.get_status_string());
-    set(handles.com_status,'BackgroundColor', 'red');
-end
-    
-    
+update_gui(handles);   
 guidata(hObject, handles);
 
 
@@ -228,17 +206,27 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 guidata(hObject, handles);
 
-% --- Executes on button press in pushbutton4.
-function pushbutton4_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton4 (see GCBO)
+% --- Executes on button press in dbg_pb_write.
+function dbg_pb_write_Callback(hObject, eventdata, handles)
+% hObject    handle to dbg_pb_write (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.ser.write_command(2);
 str_1 = get(handles.edit_first_12bit, 'string');
 str_2 = get(handles.edit_second_12bit, 'string');
-handles.ser.write_char(str_1(1));
-handles.ser.write_char(str_1(2));
-handles.ser.write_char(str_2(1));
-handles.ser.write_char(str_2(2));
+handles.ser.write_command(hex2dec(str_1(1:2)));
+handles.ser.write_command(hex2dec(str_1(3:4)));
+handles.ser.write_command(hex2dec(str_2(1:2)));
+handles.ser.write_command(hex2dec(str_2(3:4)));
 
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function dbg_pan_mem_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to dbg_pan_mem (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+set( get(hObject,'children'), 'enable', 'off');
 guidata(hObject, handles);
