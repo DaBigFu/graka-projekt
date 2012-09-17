@@ -12,38 +12,46 @@ constant c_COM_LENGTH : integer range 0 to 16 := 8;
 
 --###########################################################################
 --types
-type t_rec_com is (start_pic, end_pic, check_com, unidentified);
+type t_rx_com is (rec_pic, end_pic, check_com, unidentified);
+type t_tx_com is (board_ack, end_of_block, unidentified);
 type t_command_array is ARRAY(0 to 2) of std_logic_vector(c_COM_LENGTH-1 downto 0);
-type t_pic_array is ARRAY(0 to 10) of std_logic_vector(11 downto 0);
+type t_rec_buff is ARRAY(0 to 255) of std_logic_vector(11 downto 0);
 
 --###########################################################################
 --constants
-constant c_com_arr : t_command_array := (x"02", x"03",x"05");
+constant c_rx_com_arr : t_command_array := (x"02", x"03",x"05");
+constant c_tx_com_arr : t_command_array := (x"06", x"17", x"00");
 
 
 --###########################################################################
 --functions
-function decode_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) return t_rec_com;
+function get_tx_command(com_in : t_tx_com) return STD_LOGIC_VECTOR;
 
-function get_command_data(com_req : t_rec_com) return STD_LOGIC_VECTOR;
+function get_rx_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) return t_rx_com;
 
 end package graka_pack;
 
 package body graka_pack is
 
-function decode_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) return t_rec_com is
-	begin		
-			for i in 0 to c_com_arr'length-1 loop
-				if com_in = c_com_arr(i) then
-					return t_rec_com'val(i);
-				end if;
-			end loop;
-			return t_rec_com'right;
-end function decode_command;
-
-function get_command_data(com_req : t_rec_com) return STD_LOGIC_VECTOR is
+function get_tx_command(com_in : t_tx_com) return STD_LOGIC_VECTOR is
 	begin
-		return c_com_arr(t_rec_com'POS(com_req));
-end function get_command_data;
+		return c_tx_com_arr(t_tx_com'POS(com_in));
+end function get_tx_command;
+
+function get_rx_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) return t_rx_com is
+	begin
+		case com_in is
+			when c_rx_com_arr(0) =>
+				return t_rx_com'VAL(0);
+			when c_rx_com_arr(1) =>
+				return t_rx_com'VAL(1);
+			when c_rx_com_arr(2) =>
+				return t_rx_com'VAL(2);
+			when others =>
+				return t_rx_com'right;
+		end case;
+end function get_rx_command;
+				
+
 
 end package body graka_pack;

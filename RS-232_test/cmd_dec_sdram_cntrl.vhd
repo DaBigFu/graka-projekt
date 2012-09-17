@@ -3,6 +3,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.graka_pack.all;
 
 entity cmd_dec_sdram_cntrl is
 
@@ -20,7 +21,12 @@ entity cmd_dec_sdram_cntrl is
         data_out : out std_logic_vector(7 downto 0);
         TX_start : out std_logic;
         rx_busy  : in std_logic;
-        tx_busy  : in std_logic
+        tx_busy  : in std_logic;
+		  
+		  dbg_state : out STD_LOGIC_VECTOR(3 downto 0);
+		  dbg_page_count : out integer range 0 to 1874;
+		  dbg_byte_count : out integer range 0 to 255
+		  
     );
 
 end entity cmd_dec_sdram_cntrl;
@@ -28,7 +34,7 @@ end entity cmd_dec_sdram_cntrl;
 architecture beh of cmd_dec_sdram_cntrl is
 
     -- interne States
-    type states is (s_ram_init, s_ram_idle, s_ram_rd, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic);
+    type states is (s_ram_init, s_ram_idle, s_ram_rd, s_ram_fullpagewrite, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic);
     signal current_state, next_state : states;
 
      --interne Signale fuer Ausgangspins
@@ -47,16 +53,36 @@ architecture beh of cmd_dec_sdram_cntrl is
     signal  initialized, rd_done, rd_req : STD_LOGIC := '0';
     signal buf_y                         : STD_LOGIC_VECTOR(9 downto 0) := "0000000111"; --speichert global die Nummer der letzten gepufferten Bildzeile
     signal  rx_busy_last                 : std_logic := '0';
-	 signal rs232_cmd : STD_LOGIC_VECTOR(7 downto 0) := x"00";
 	 signal pic_received : STD_LOGIC := '0';
+	 signal rx_cmd : t_rx_com := unidentified;
+	 signal tx_cmd : t_tx_com := unidentified;
+	 
+	 signal page_received : STD_LOGIC := '0';
 
     -- temporaere signale
     signal farbelinks  : STD_LOGIC_VECTOR(11 downto 0) := x"FF0";
     signal farberechts : std_logic_vector(11 downto 0) := x"0FF";
     --attribute ramstyle        : string;
     --attribute ramstyle of beh : architecture is "M9K";
+	 
+	 --buffers counters etc für bildempfang
+	 signal rec_buff : t_rec_buff;
+	 signal page_counter : INTEGER range 0 to 1874 := 0;
+	 signal byte_counter : INTEGER range 0 to 255 := 0;
+	 signal byte_toggle : STD_LOGIC := '0';
 
 begin
+
+	dbg_byte_count <= byte_counter;
+	dbg_page_count <= page_counter;
+
+	 with current_state select
+		dbg_state <= x"1" when s_wait_for_com,
+						 x"2" when s_receive_pic,
+						 x"3" when s_ram_fullpagewrite,
+						 x"4" when s_transmit_response,
+						 x"5" when s_wait_for_tx,
+						 x"F" when others;
 
     --------------------------------------------------------------------
     --------------------------------------------------------------------
@@ -74,7 +100,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rs232_cmd, pic_received)
+    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received)
     begin
         
             case current_state is
@@ -84,34 +110,40 @@ begin
                 -- get this shiat done ----------------------------------------------------------------
                 ---------------------------------------------------------------------------------------
                 when s_wait_for_com =>
-                    if rx_busy = '0' and rs232_cmd = x"05" then
-                        next_state   <= s_transmit_response;
-								
-							elsif rx_busy ='0' and rs232_cmd = x"02" then
+                    if rx_busy = '0' and rx_cmd = check_com then
+                        next_state <= s_transmit_response;								
+						  elsif rx_busy ='0' and rx_cmd = rec_pic then
 								next_state <= s_receive_pic;
                     else
-								next_state <= s_wait_for_com;
-                        
+								next_state <= s_wait_for_com;                        
                     end if;
-
 
                 when s_transmit_response =>
                     next_state <= s_wait_for_tx;
 
 
                 when s_wait_for_tx =>
-                    if tx_busy = '1' then
+						  if tx_busy = '1' then
                         next_state <= s_wait_for_tx;
-                    else
-                        next_state <= s_wait_for_com;
+                    elsif tx_busy = '0' AND page_counter > 0 then
+                        next_state <= s_receive_pic;
+						  else
+								next_state <= s_wait_for_com;
                     end if;
 
 					when s_receive_pic =>
-						if pic_received = '1' THEN
-							next_state<=s_ram_idle;
+						if page_received = '1' THEN
+							next_state<=s_ram_fullpagewrite;
+						elsif pic_received = '1' THEN
+							next_state <= s_wait_for_com;
 						else
 							next_state<=s_receive_pic;
 						end if;
+						
+					when s_ram_fullpagewrite =>
+						--do your stuff here
+						next_state <= s_transmit_response;
+						
                
                 ---------------------------------------------------------------------------------------
                 -- SDRAM stuff ------------------------------------------------------------------------
@@ -148,7 +180,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy)
+    output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy, byte_toggle, byte_counter, page_counter, data_in)
 
         variable cnt1    : integer range 0 to 36000 := 0;
         variable cnt2    : integer range 0 to 4 := 0;
@@ -164,6 +196,8 @@ begin
         variable cnt3    : integer range 0 to 511 := 0;
 		  
 		  variable received_pic_counter : integer range 0 to 7 := 0;
+		  
+		  variable rx_cmd_var : t_rx_com := unidentified;
 
     begin
         if (reset = '0') then
@@ -182,10 +216,13 @@ begin
             rd_req      <= '0';
             rd_done     <= '0';
 				rx_busy_last<= '0';
-	 rs232_cmd <= x"00";
-	pic_received<= '0';
-    farbelinks <= x"000";
-    farberechts<= x"000";
+				rx_cmd <= unidentified;
+				pic_received<= '0';
+				farbelinks <= x"000";
+				farberechts<= x"000";
+				
+				byte_counter <= 0;
+				page_counter <= 0;
 				
 
             cnt1    := 0;
@@ -210,22 +247,25 @@ begin
                 -- get this shiat done ----------------------------------------------------------------
                 ---------------------------------------------------------------------------------------
                 when s_wait_for_com =>
+						  pic_received <= '0';
                     data_out <= x"00";
                     TX_start <= '0';
 						  IF rx_busy = '1' THEN
 								rx_busy_last <= '1';
-						  ELSIF rx_busy = '0' AND rx_busy_last = '1' AND data_in=x"05" THEN
+						  ELSIF rx_busy = '0' AND rx_busy_last = '1' THEN
 						  rx_busy_last <= '0';
-								rs232_cmd<=data_in;
-						  ELSIF rx_busy = '0' AND rx_busy_last = '1' AND data_in=x"02" THEN
-							rx_busy_last <= '0';
-								rs232_cmd<=data_in;
-								
+						  rx_cmd_var := get_rx_command(data_in);
+						  rx_cmd <= rx_cmd_var;
+								if rx_cmd_var = check_com then
+									tx_cmd <= board_ack;
+								else
+									tx_cmd <= unidentified;
+								end if;	
 						  END IF;
 
                 when s_transmit_response =>
-							rs232_cmd<=x"00";
-                    data_out <= x"06";
+						  rx_cmd <= unidentified;
+                    data_out <= get_tx_command(tx_cmd);
                     TX_start <= '1';
 						  rx_busy_last <= '0';
 
@@ -234,34 +274,45 @@ begin
 						  rx_busy_last <= '0';
 						  
 				   when s_receive_pic =>
-						if rx_busy = '1' then
+						outer_if : if rx_busy = '1' then
                         rx_busy_last <= '1';
 						ELSIF rx_busy = '0' AND rx_busy_last = '1' THEN
 								rx_busy_last <= '0';
 								
-								if received_pic_counter = 0 then
-                            farbelinks(11 downto 8) <= data_in(3 downto 0);
-                            received_pic_counter := received_pic_counter + 1;
-
-                        elsif received_pic_counter = 1 then
-                            farbelinks(7 downto 0) <= data_in;
-                            received_pic_counter := received_pic_counter + 1;
-
-                        elsif received_pic_counter = 2 then
-                            farberechts(11 downto 8) <= data_in(3 downto 0);
-                            received_pic_counter := received_pic_counter + 1;
-
-                        elsif received_pic_counter = 3 then
-                            farberechts(7 downto 0) <= data_in;
-                            received_pic_counter := received_pic_counter + 1;
-
-                        end if;
+								inner_if : if page_counter = 1874 then
+									--done
+									page_counter <= 0;
+									byte_counter <= 0;
+									byte_toggle <= '0';
+									pic_received <= '1';
 								
-					 elsif received_pic_counter > 3 then
-							pic_received<='1';
-                        received_pic_counter := 0;
-                       
-                    end if;
+								elsif byte_counter = 255 AND byte_toggle = '1' then
+									-- page done
+									byte_counter <= 0;
+									byte_toggle <= '0';
+									page_counter <= page_counter + 1;
+									page_received <= '1';
+								
+								elsif byte_toggle = '0' then
+									--write upper 4 bit
+									rec_buff(byte_counter)(11 downto 8) <= data_in(3 downto 0);
+									byte_toggle <= '1';
+									
+								elsif byte_toggle = '1' then
+									--write lower 8 bit
+									rec_buff(byte_counter)(7 downto 0) <= data_in;
+									byte_toggle <= '0';
+									byte_counter <= byte_counter + 1;
+									
+								end if inner_if;                       
+                end if outer_if;
+					 
+					 when s_ram_fullpagewrite =>
+						--do your magic here
+						
+
+						tx_cmd <= end_of_block;
+						page_received <= '0';
 							
 
                 ---------------------------------------------------------------------------------------------------------------------------------------------------

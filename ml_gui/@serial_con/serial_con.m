@@ -85,7 +85,7 @@ classdef serial_con < handle
             if (obj.status == 1)
                 disp('tried to send data via closed port');
             else
-                char = fread(obj.ser_port);
+                char = fread(obj.ser_port, 1, 'uint8');
             end
         end
         
@@ -94,6 +94,14 @@ classdef serial_con < handle
                 disp('tried to send data via closed port');
             else
                 fprintf(obj.ser_port, '%c', com);
+            end
+        end
+        
+        function write_uint8(obj, int_in)
+            if (obj.status == 1)
+                disp('tried to send data via closed port');
+            else
+                fwrite(obj.ser_port,int_in, 'uint8');
             end
         end
         

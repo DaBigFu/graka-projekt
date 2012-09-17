@@ -22,7 +22,7 @@ function varargout = graka_gui(varargin)
 
 % Edit the above text to modify the response to help graka_gui
 
-% Last Modified by GUIDE v2.5 14-Sep-2012 13:31:35
+% Last Modified by GUIDE v2.5 17-Sep-2012 22:11:17
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -229,4 +229,70 @@ function dbg_pan_mem_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 set( get(hObject,'children'), 'enable', 'off');
+guidata(hObject, handles);
+
+
+
+function edit_file_path_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_file_path (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_file_path as text
+%        str2double(get(hObject,'String')) returns contents of edit_file_path as a double
+switch(fext)
+    case '.bin'
+        handles.FilterIndex = 1;
+    case '.bmp'
+        handles.FilterIndex = 2;
+    otherwise
+end
+handles.FileName = [fname fext];
+handles.PathName = fpath;
+%TODO: check file properties
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit_file_path_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_file_path (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+guidata(hObject, handles);
+
+% --- Executes on button press in pb_browse_file.
+function pb_browse_file_Callback(hObject, eventdata, handles)
+% hObject    handle to pb_browse_file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+file_filter = { '*.bin', '*.bin, binary files, headers removed' ;...
+                '*.bmp', '*.bmp, bitmap file, headers not removed' };
+[handles.FileName,handles.PathName,handles.FilterIndex] = uigetfile(file_filter, 'Browse Files');
+set(handles.edit_file_path, 'String', [handles.PathName handles.FileName]);
+guidata(hObject, handles);
+
+% --- Executes on button press in pb_write_file.
+function pb_write_file_Callback(hObject, eventdata, handles)
+% hObject    handle to pb_write_file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+file_in = fopen( [ handles.PathName handles.FileName ], 'r');
+file_array = fread(file_in, [512 1785], 'uint8', 'ieee-be');
+handles.ser.write_uint8(2);
+for i = 1:1:1785
+    for j = 1:1:512
+        handles.ser.write_uint8(file_array(i,j));
+    end
+    if handles.ser.read_char == 23
+        disp(i);
+    end
+end
+
+
+
 guidata(hObject, handles);
