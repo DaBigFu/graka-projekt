@@ -286,7 +286,7 @@ file_array = fread(file_in, [512 1785], 'uint8', 'ieee-be');
 handles.ser.write_uint8(2);
 for i = 1:1:1785
     for j = 1:1:512
-        handles.ser.write_uint8(file_array(i,j));
+        handles.ser.write_uint8(file_array(j,i));
     end
     if handles.ser.read_char == 23
         disp(i);
