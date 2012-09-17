@@ -47,6 +47,8 @@ architecture beh of cmd_dec_sdram_cntrl is
     signal  initialized, rd_done, rd_req : STD_LOGIC := '0';
     signal buf_y                         : STD_LOGIC_VECTOR(9 downto 0) := "0000000111"; --speichert global die Nummer der letzten gepufferten Bildzeile
     signal  rx_busy_last                 : std_logic := '0';
+	 signal rs232_cmd : STD_LOGIC_VECTOR(7 downto 0) := x"00";
+	 signal pic_received : STD_LOGIC := '0';
 
     -- temporaere signale
     signal farbelinks  : STD_LOGIC_VECTOR(11 downto 0) := x"FF0";
@@ -72,17 +74,9 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy)
-
-        variable received_pic_counter : integer range 0 to 7 := 0;
-
+    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rs232_cmd, pic_received)
     begin
-        if reset = '0' then
-            
-            farbelinks<=x"0FF";
-            farberechts<=x"FF0";
-            
-        elsif clk'EVENT and clk = '1' then
+        
             case current_state is
 
                 ---------------------------------------------------------------------------------------
@@ -90,17 +84,14 @@ begin
                 -- get this shiat done ----------------------------------------------------------------
                 ---------------------------------------------------------------------------------------
                 when s_wait_for_com =>
-                    if rx_busy = '1' then
-                        rx_busy_last <= '1';
-                        next_state   <= s_wait_for_com;
-
-                    elsif rx_busy = '0' and rx_busy_last = '1' and data_in = x"05" then
+                    if rx_busy = '0' and rs232_cmd = x"05" then
                         next_state   <= s_transmit_response;
-                        rx_busy_last <= '0';
-
-                    elsif rx_busy = '0' and rx_busy_last = '1' and data_in = x"02" then
-                        next_state   <= s_receive_pic;
-                        rx_busy_last <= '0';
+								
+							elsif rx_busy ='0' and rs232_cmd = x"02" then
+								next_state <= s_receive_pic;
+                    else
+								next_state <= s_wait_for_com;
+                        
                     end if;
 
 
@@ -115,39 +106,13 @@ begin
                         next_state <= s_wait_for_com;
                     end if;
 
-
-                when s_receive_pic =>
-                    if rx_busy = '1' then
-                        rx_busy_last <= '1';
-                        next_state   <= s_receive_pic;
-
-                    elsif rx_busy = '0' and rx_busy_last = '1' then
-                        rx_busy_last <= '0';
-
-                        if received_pic_counter = 0 then
-                            farbelinks(11 downto 8) <= data_in(3 downto 0);
-                            received_pic_counter := received_pic_counter + 1;
-
-                        elsif received_pic_counter = 1 then
-                            farbelinks(7 downto 0) <= data_in;
-                            received_pic_counter := received_pic_counter + 1;
-
-                        elsif received_pic_counter = 2 then
-                            farberechts(11 downto 8) <= data_in(3 downto 0);
-                            received_pic_counter := received_pic_counter + 1;
-
-                        elsif received_pic_counter = 3 then
-                            farberechts(7 downto 0) <= data_in;
-                            received_pic_counter := received_pic_counter + 1;
-
-                        end if;
-
-                        next_state <= s_receive_pic;
-
-                    elsif received_pic_counter > 3 then
-                        received_pic_counter := 0;
-                        next_state <= s_ram_idle;
-                    end if;
+					when s_receive_pic =>
+						if pic_received = '1' THEN
+							next_state<=s_ram_idle;
+						else
+							next_state<=s_receive_pic;
+						end if;
+               
                 ---------------------------------------------------------------------------------------
                 -- SDRAM stuff ------------------------------------------------------------------------
                 -- joh --------------------------------------------------------------------------------
@@ -176,14 +141,14 @@ begin
                 when others =>
                     next_state <= s_ram_init;
             end case;
-        end if;
+        
     end process next_state_logic;
 
 
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y)
+    output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy)
 
         variable cnt1    : integer range 0 to 36000 := 0;
         variable cnt2    : integer range 0 to 4 := 0;
@@ -197,6 +162,8 @@ begin
         variable array_x : integer range 0 to 1023 := 0;
         variable array_y : integer range 0 to 7 := 0;
         variable cnt3    : integer range 0 to 511 := 0;
+		  
+		  variable received_pic_counter : integer range 0 to 7 := 0;
 
     begin
         if (reset = '0') then
@@ -214,6 +181,12 @@ begin
             initialized <= '0';
             rd_req      <= '0';
             rd_done     <= '0';
+				rx_busy_last<= '0';
+	 rs232_cmd <= x"00";
+	pic_received<= '0';
+    farbelinks <= x"000";
+    farberechts<= x"000";
+				
 
             cnt1    := 0;
             cnt2    := 0;
@@ -227,6 +200,7 @@ begin
             array_x := 0;
             array_y := 0;
             cnt3    := 0;
+				received_pic_counter := 0;
 
         elsif (clk'EVENT and clk = '1') then
             case current_state is
@@ -238,16 +212,57 @@ begin
                 when s_wait_for_com =>
                     data_out <= x"00";
                     TX_start <= '0';
+						  IF rx_busy = '1' THEN
+								rx_busy_last <= '1';
+						  ELSIF rx_busy = '0' AND rx_busy_last = '1' AND data_in=x"05" THEN
+						  rx_busy_last <= '0';
+								rs232_cmd<=data_in;
+						  ELSIF rx_busy = '0' AND rx_busy_last = '1' AND data_in=x"02" THEN
+							rx_busy_last <= '0';
+								rs232_cmd<=data_in;
+								
+						  END IF;
 
                 when s_transmit_response =>
+							rs232_cmd<=x"00";
                     data_out <= x"06";
                     TX_start <= '1';
+						  rx_busy_last <= '0';
 
                 when s_wait_for_tx =>
                     TX_start <= '0';
+						  rx_busy_last <= '0';
+						  
+				   when s_receive_pic =>
+						if rx_busy = '1' then
+                        rx_busy_last <= '1';
+						ELSIF rx_busy = '0' AND rx_busy_last = '1' THEN
+								rx_busy_last <= '0';
+								
+								if received_pic_counter = 0 then
+                            farbelinks(11 downto 8) <= data_in(3 downto 0);
+                            received_pic_counter := received_pic_counter + 1;
 
-                when s_receive_pic =>
-                    TX_start <= '0';
+                        elsif received_pic_counter = 1 then
+                            farbelinks(7 downto 0) <= data_in;
+                            received_pic_counter := received_pic_counter + 1;
+
+                        elsif received_pic_counter = 2 then
+                            farberechts(11 downto 8) <= data_in(3 downto 0);
+                            received_pic_counter := received_pic_counter + 1;
+
+                        elsif received_pic_counter = 3 then
+                            farberechts(7 downto 0) <= data_in;
+                            received_pic_counter := received_pic_counter + 1;
+
+                        end if;
+								
+					 elsif received_pic_counter > 3 then
+							pic_received<='1';
+                        received_pic_counter := 0;
+                       
+                    end if;
+							
 
                 ---------------------------------------------------------------------------------------------------------------------------------------------------
                 -- Initialisierung --------------------------------------------------------------------------------------------------------------------------------
@@ -469,7 +484,6 @@ begin
 
     end process output_logic;
 
-
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
@@ -487,6 +501,7 @@ begin
 
         elsif (clk'EVENT and clk = '1') then
             case current_state is
+					
                 when s_ram_init =>
                     ipixel <= x"FFFF";
 
@@ -560,6 +575,7 @@ begin
         pixel <= ipixel;
 
     end process VGA_out;
+
 
 
 end beh;
