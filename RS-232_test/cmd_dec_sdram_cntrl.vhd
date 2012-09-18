@@ -308,7 +308,7 @@ begin
                     elsif rx_busy = '0' and rx_busy_last = '1' then
                         rx_busy_last <= '0';
 
-                        inner_if : if page_counter = 1000 then
+                        inner_if : if page_counter = 1874 then
                                     --done
                             page_counter <= 0;
                             byte_counter <= 0;
