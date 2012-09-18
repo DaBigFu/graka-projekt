@@ -110,12 +110,14 @@ classdef serial_con < handle
         end
         
         function write_array(obj, arr_in, dim1, dim2)
+            wait_h = waitbar(0, 'Daten werden übertragen...');
             for i = dim2:-1:1
                 fwrite(obj.ser_port, arr_in(512:-1:1,i),'uint8');                
                 if obj.read_char == 23
-                    disp(i);
+                    waitbar((dim2-i)/dim2,wait_h);                    
                 end
             end
+            close(wait_h);
         end
         
         function new_status = check_com(obj)
