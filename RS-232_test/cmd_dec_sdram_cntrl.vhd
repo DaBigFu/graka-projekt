@@ -213,6 +213,8 @@ begin
         variable dbg_cyc_count_int : integer := 0;
         variable wr                : integer range 0 to 15 := 0;
         variable page_to_write     : integer range 0 to 2047 := 0;
+        variable refresh           : integer range 0 to 15 := 0;
+        variable refresh_cnt       : integer range 0 to 8191 := 0;
 
           --variable received_pic_counter : integer range 0 to 7 := 0;
 
@@ -259,6 +261,8 @@ begin
             cnt3          := 0;
             wr            := 0;
             page_to_write := 0;
+            refresh       := 0;
+            refresh_cnt   := 0;
                 --received_pic_counter := 0;
 
         elsif (clk'EVENT and clk = '1') then
@@ -286,6 +290,7 @@ begin
                     end if;
 
                 when s_transmit_response =>
+                    refreshed    <= '0';
                     rx_cmd       <= unidentified;
                     data_out     <= get_tx_command(tx_cmd);
                     TX_start     <= '1';
@@ -303,7 +308,7 @@ begin
                     elsif rx_busy = '0' and rx_busy_last = '1' then
                         rx_busy_last <= '0';
 
-                        inner_if : if page_counter = 1875 then
+                        inner_if : if page_counter = 1000 then
                                     --done
                             page_counter <= 0;
                             byte_counter <= 0;
@@ -321,12 +326,12 @@ begin
 
                         elsif byte_toggle = '0' then
                                     --write upper 4 bit
-                            rec_buff(byte_counter)(7 downto 0) <= data_in(7 downto 0);
+                            rec_buff(byte_counter)(11 downto 8) <= data_in(3 downto 0);
                             byte_toggle                         <= '1';
 
                         elsif byte_toggle = '1' then
                                     --write lower 8 bit
-                            rec_buff(byte_counter)(11 downto 8) <= data_in(3 downto 0);
+                            rec_buff(byte_counter)(7 downto 0) <= data_in(7 downto 0);
                             byte_toggle                        <= '0';
                             byte_counter                       <= byte_counter + 1;
 
@@ -356,7 +361,7 @@ begin
                         end if;
 
                     elsif wr = 2 then       --write
-                        iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
+                        iADDR   <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
                         DRAM_DQ <= "0000" & rec_buff(cnt3);
                         --DRAM_DQ <= x"0FF0";
                         cnt3 := 1;
@@ -394,7 +399,7 @@ begin
                             page_to_write := page_to_write +1;
                             wr_done <= '1';
                             cnt2 := 0;
-                            wr:=0;
+                            wr   := 0;
                         end if;
 
                     else
@@ -407,8 +412,22 @@ begin
                 -- refresht Bank 0, damit keine Daten verloren gehen ----------------------------------------------------------------------------------------------
                 --------------------------------------------------------------------------------------------------------------------------------------------------- 
                 when s_ram_refresh =>
-                    wr_done   <= '0';
-                    refreshed <= '1';
+                    wr_done <= '0';
+                    if refresh_cnt < 4096 then
+                        if refresh = 0 then   --auto refresh
+                            iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '0'; iWE <= '1';
+                            refresh := 1;
+                        elsif refresh < 8 then --tARFC
+                            iCS <= '1';
+                            refresh := refresh+1;
+                        else
+                            refresh_cnt := refresh_cnt+1;
+                            refresh     := 0;
+                        end if;
+                    else
+                        refreshed <= '1';
+                        refresh_cnt := 0;
+                    end if;
 
                 ---------------------------------------------------------------------------------------------------------------------------------------------------
                 -- Initialisierung --------------------------------------------------------------------------------------------------------------------------------
@@ -660,21 +679,21 @@ begin
                     arr_y := (pic_y-bf_y);
 
                     if arr_y = 0 then
-                        ipixel <= "0000" & pic_buf7(pic_x);
-                    elsif arr_y = 1 then
-                        ipixel <= "0000" & pic_buf6(pic_x);
-                    elsif arr_y = 2 then
-                        ipixel <= "0000" & pic_buf5(pic_x);
-                    elsif arr_y = 3 then
-                        ipixel <= "0000" & pic_buf4(pic_x);
-                    elsif arr_y = 4 then
-                        ipixel <= "0000" & pic_buf3(pic_x);
-                    elsif arr_y = 5 then
-                        ipixel <= "0000" & pic_buf2(pic_x);
-                    elsif arr_y = 6 then
-                        ipixel <= "0000" & pic_buf1(pic_x);
-                    else
                         ipixel <= "0000" & pic_buf0(pic_x);
+                    elsif arr_y = 1 then
+                        ipixel <= "0000" & pic_buf1(pic_x);
+                    elsif arr_y = 2 then
+                        ipixel <= "0000" & pic_buf2(pic_x);
+                    elsif arr_y = 3 then
+                        ipixel <= "0000" & pic_buf3(pic_x);
+                    elsif arr_y = 4 then
+                        ipixel <= "0000" & pic_buf4(pic_x);
+                    elsif arr_y = 5 then
+                        ipixel <= "0000" & pic_buf5(pic_x);
+                    elsif arr_y = 6 then
+                        ipixel <= "0000" & pic_buf6(pic_x);
+                    else
+                        ipixel <= "0000" & pic_buf7(pic_x);
                     end if;
 
                 when s_ram_rd =>
@@ -685,21 +704,21 @@ begin
                     arr_y := (pic_y-bf_y);
 
                     if arr_y = 0 then
-                        ipixel <= "0000" & pic_buf7(pic_x);
-                    elsif arr_y = 1 then
-                        ipixel <= "0000" & pic_buf6(pic_x);
-                    elsif arr_y = 2 then
-                        ipixel <= "0000" & pic_buf5(pic_x);
-                    elsif arr_y = 3 then
-                        ipixel <= "0000" & pic_buf4(pic_x);
-                    elsif arr_y = 4 then
-                        ipixel <= "0000" & pic_buf3(pic_x);
-                    elsif arr_y = 5 then
-                        ipixel <= "0000" & pic_buf2(pic_x);
-                    elsif arr_y = 6 then
-                        ipixel <= "0000" & pic_buf1(pic_x);
-                    else
                         ipixel <= "0000" & pic_buf0(pic_x);
+                    elsif arr_y = 1 then
+                        ipixel <= "0000" & pic_buf1(pic_x);
+                    elsif arr_y = 2 then
+                        ipixel <= "0000" & pic_buf2(pic_x);
+                    elsif arr_y = 3 then
+                        ipixel <= "0000" & pic_buf3(pic_x);
+                    elsif arr_y = 4 then
+                        ipixel <= "0000" & pic_buf4(pic_x);
+                    elsif arr_y = 5 then
+                        ipixel <= "0000" & pic_buf5(pic_x);
+                    elsif arr_y = 6 then
+                        ipixel <= "0000" & pic_buf6(pic_x);
+                    else
+                        ipixel <= "0000" & pic_buf7(pic_x);
                     end if;
 
 
