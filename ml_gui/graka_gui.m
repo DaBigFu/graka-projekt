@@ -284,15 +284,10 @@ function pb_write_file_Callback(hObject, eventdata, handles)
 file_in = fopen( [ handles.PathName handles.FileName ], 'r');
 file_array = fread(file_in, [512 1875], 'uint8', 'ieee-be');
 handles.ser.write_uint8(2);
-for i = 1875:-1:1
-    for j = 512:-1:1
-        handles.ser.write_uint8(file_array(j,i));
-    end
-    if handles.ser.read_char == 23
-        disp(i);
-    end
-end
-
-
+profile clear
+profile on
+handles.ser.write_array(file_array,512,1000);
+profile off
+profile viewer
 
 guidata(hObject, handles);
