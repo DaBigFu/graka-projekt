@@ -284,8 +284,8 @@ function pb_write_file_Callback(hObject, eventdata, handles)
 file_in = fopen( [ handles.PathName handles.FileName ], 'r');
 file_array = fread(file_in, [512 1875], 'uint8', 'ieee-be');
 handles.ser.write_uint8(2);
-for i = 1:1:1875
-    for j = 1:1:512
+for i = 1875:-1:1
+    for j = 512:-1:1
         handles.ser.write_uint8(file_array(j,i));
     end
     if handles.ser.read_char == 23
