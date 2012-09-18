@@ -282,9 +282,9 @@ function pb_write_file_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 file_in = fopen( [ handles.PathName handles.FileName ], 'r');
-file_array = fread(file_in, [512 1785], 'uint8', 'ieee-be');
+file_array = fread(file_in, [512 1875], 'uint8', 'ieee-be');
 handles.ser.write_uint8(2);
-for i = 1:1:1785
+for i = 1:1:1875
     for j = 1:1:512
         handles.ser.write_uint8(file_array(j,i));
     end

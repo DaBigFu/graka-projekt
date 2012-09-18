@@ -10,6 +10,7 @@
 
 *.asv
 
+*.qws
 *.done
 *.bak
 *.rpt

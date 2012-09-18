@@ -22,11 +22,12 @@ entity cmd_dec_sdram_cntrl is
         TX_start : out std_logic;
         rx_busy  : in std_logic;
         tx_busy  : in std_logic;
-		  
-		  dbg_state : out STD_LOGIC_VECTOR(3 downto 0);
-		  dbg_page_count : out integer range 0 to 1874;
-		  dbg_byte_count : out integer range 0 to 255
-		  
+
+        dbg_state      : out STD_LOGIC_VECTOR(3 downto 0);
+        dbg_page_count : out integer range 0 to 1874;
+        dbg_byte_count : out integer range 0 to 255;
+        dbg_cyc_count  : out std_logic_vector(27 downto 0)
+
     );
 
 end entity cmd_dec_sdram_cntrl;
@@ -34,7 +35,7 @@ end entity cmd_dec_sdram_cntrl;
 architecture beh of cmd_dec_sdram_cntrl is
 
     -- interne States
-    type states is (s_ram_init, s_ram_idle, s_ram_rd, s_ram_fullpagewrite, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic);
+    type states is (s_ram_init, s_ram_idle, s_ram_rd, s_ram_fullpagewrite, s_ram_refresh, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic);
     signal current_state, next_state : states;
 
      --interne Signale fuer Ausgangspins
@@ -50,39 +51,42 @@ architecture beh of cmd_dec_sdram_cntrl is
     signal pic_buf0, pic_buf1, pic_buf2, pic_buf3, pic_buf4, pic_buf5, pic_buf6, pic_buf7 : pic_array ;
 
     --iterne Signale fuer Kommunikation zwischen den Prozessen
-    signal  initialized, rd_done, rd_req : STD_LOGIC := '0';
-    signal buf_y                         : STD_LOGIC_VECTOR(9 downto 0) := "0000000111"; --speichert global die Nummer der letzten gepufferten Bildzeile
-    signal  rx_busy_last                 : std_logic := '0';
-	 signal pic_received : STD_LOGIC := '0';
-	 signal rx_cmd : t_rx_com := unidentified;
-	 signal tx_cmd : t_tx_com := unidentified;
-	 
-	 signal page_received : STD_LOGIC := '0';
+    signal  initialized, rd_done, rd_req, wr_done, refreshed : STD_LOGIC := '0';
+    signal buf_y                                             : STD_LOGIC_VECTOR(9 downto 0) := "0000000111"; --speichert global die Nummer der letzten gepufferten Bildzeile
+    signal  rx_busy_last                                     : std_logic := '0';
+    signal pic_received                                      : STD_LOGIC := '0';
+    signal rx_cmd                                            : t_rx_com := unidentified;
+    signal tx_cmd                                            : t_tx_com := unidentified;
+
+    signal page_received : STD_LOGIC := '0';
 
     -- temporaere signale
     signal farbelinks  : STD_LOGIC_VECTOR(11 downto 0) := x"FF0";
     signal farberechts : std_logic_vector(11 downto 0) := x"0FF";
     --attribute ramstyle        : string;
     --attribute ramstyle of beh : architecture is "M9K";
-	 
-	 --buffers counters etc für bildempfang
-	 signal rec_buff : t_rec_buff;
-	 signal page_counter : INTEGER range 0 to 1874 := 0;
-	 signal byte_counter : INTEGER range 0 to 255 := 0;
-	 signal byte_toggle : STD_LOGIC := '0';
+
+     --buffers counters etc fÃ¼r bildempfang
+    signal rec_buff     : t_rec_buff;
+    signal page_counter : INTEGER range 0 to 1874 := 0;
+    signal byte_counter : INTEGER range 0 to 255 := 0;
+    signal byte_toggle  : STD_LOGIC := '0';
 
 begin
 
-	dbg_byte_count <= byte_counter;
-	dbg_page_count <= page_counter;
+    dbg_byte_count <= byte_counter;
+    dbg_page_count <= page_counter;
 
-	 with current_state select
-		dbg_state <= x"1" when s_wait_for_com,
-						 x"2" when s_receive_pic,
-						 x"3" when s_ram_fullpagewrite,
-						 x"4" when s_transmit_response,
-						 x"5" when s_wait_for_tx,
-						 x"F" when others;
+    with current_state select
+        dbg_state <= x"1" when s_wait_for_com,
+        x"2" when s_receive_pic,
+        x"3" when s_ram_fullpagewrite,
+        x"4" when s_transmit_response,
+        x"5" when s_wait_for_tx,
+        x"6" when s_ram_refresh,
+        x"7" when s_ram_idle,
+        x"8" when s_ram_rd,
+        x"F" when others;
 
     --------------------------------------------------------------------
     --------------------------------------------------------------------
@@ -100,80 +104,92 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received)
+    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, wr_done, initialized, refreshed, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received)
     begin
-        
-            case current_state is
+
+        case current_state is
 
                 ---------------------------------------------------------------------------------------
                 -- Paas stuff -------------------------------------------------------------------------
                 -- get this shiat done ----------------------------------------------------------------
                 ---------------------------------------------------------------------------------------
-                when s_wait_for_com =>
-                    if rx_busy = '0' and rx_cmd = check_com then
-                        next_state <= s_transmit_response;								
-						  elsif rx_busy ='0' and rx_cmd = rec_pic then
-								next_state <= s_receive_pic;
-                    else
-								next_state <= s_wait_for_com;                        
-                    end if;
+            when s_wait_for_com =>
+                if rx_busy = '0' and rx_cmd = check_com then
+                    next_state <= s_transmit_response;
+                elsif rx_busy = '0' and rx_cmd = rec_pic then
+                    next_state <= s_receive_pic;
+                else
+                    next_state <= s_wait_for_com;
+                end if;
 
-                when s_transmit_response =>
+            when s_transmit_response =>
+                next_state <= s_wait_for_tx;
+
+
+            when s_wait_for_tx =>
+                if tx_busy = '1' then
                     next_state <= s_wait_for_tx;
+                elsif tx_busy = '0' and page_counter > 0 then
+                    next_state <= s_receive_pic;
+                else
+                    next_state <= s_wait_for_com;
+                end if;
+
+            when s_receive_pic =>
+                if page_received = '1' then
+                    next_state <= s_ram_fullpagewrite;
+                elsif pic_received = '1' then
+                    next_state <= s_ram_idle;
+                else
+                    next_state <= s_receive_pic;
+                end if;
+
+            when s_ram_fullpagewrite =>
+                if wr_done = '1' then
+                    next_state <= s_ram_refresh;
+                else
+                    next_state <= s_ram_fullpagewrite;
+                end if;
 
 
-                when s_wait_for_tx =>
-						  if tx_busy = '1' then
-                        next_state <= s_wait_for_tx;
-                    elsif tx_busy = '0' AND page_counter > 0 then
-                        next_state <= s_receive_pic;
-						  else
-								next_state <= s_wait_for_com;
-                    end if;
+            when s_ram_refresh =>
+                if refreshed = '1' then
+                    next_state <= s_transmit_response;
+                else
+                    next_state <= s_ram_refresh;
+                end if;
 
-					when s_receive_pic =>
-						if page_received = '1' THEN
-							next_state<=s_ram_fullpagewrite;
-						elsif pic_received = '1' THEN
-							next_state <= s_wait_for_com;
-						else
-							next_state<=s_receive_pic;
-						end if;
-						
-					when s_ram_fullpagewrite =>
-						--do your stuff here
-						next_state <= s_transmit_response;
-						
-               
+
+
                 ---------------------------------------------------------------------------------------
                 -- SDRAM stuff ------------------------------------------------------------------------
                 -- joh --------------------------------------------------------------------------------
                 ---------------------------------------------------------------------------------------
-                when s_ram_init =>
-                    if initialized = '1' then
-                        next_state <= s_wait_for_com;
-                    else
-                        next_state <= s_ram_init;
-                    end if;
-
-                when s_ram_idle =>
-                    if  rd_req = '1' then
-                        next_state <= s_ram_rd;
-                    else
-                        next_state <= s_ram_idle;
-                    end if;
-
-                when s_ram_rd =>
-                    if rd_done = '1' then
-                        next_state <= s_ram_idle;
-                    else
-                        next_state <= s_ram_rd;
-                    end if;
-
-                when others =>
+            when s_ram_init =>
+                if initialized = '1' then
+                    next_state <= s_wait_for_com;
+                else
                     next_state <= s_ram_init;
-            end case;
-        
+                end if;
+
+            when s_ram_idle =>
+                if  rd_req = '1' then
+                    next_state <= s_ram_rd;
+                else
+                    next_state <= s_ram_idle;
+                end if;
+
+            when s_ram_rd =>
+                if rd_done = '1' then
+                    next_state <= s_ram_idle;
+                else
+                    next_state <= s_ram_rd;
+                end if;
+
+            when others =>
+                next_state <= s_ram_init;
+        end case;
+
     end process next_state_logic;
 
 
@@ -182,22 +198,25 @@ begin
     ----------------------------------------------------------------------
     output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy, byte_toggle, byte_counter, page_counter, data_in)
 
-        variable cnt1    : integer range 0 to 36000 := 0;
-        variable cnt2    : integer range 0 to 4 := 0;
-        variable init    : integer range 0 to 15 := 0;
-        variable pic_y   : integer range 0 to 1023 := 0;
-        variable pic_x   : integer range 0 to 2047 := 0;
-        variable bf_y    : integer range 0 to 1023 := 7; --speichert letzten Zeile des picture arrays zum Vergleich mit VGA-Modul
-        variable rd_cnt  : integer range 0 to 31 := 0;
-        variable row     : integer range 0 to 2047 := 25;
-        variable rd      : integer range 0 to 15 := 0;
-        variable array_x : integer range 0 to 1023 := 0;
-        variable array_y : integer range 0 to 7 := 0;
-        variable cnt3    : integer range 0 to 511 := 0;
-		  
-		  variable received_pic_counter : integer range 0 to 7 := 0;
-		  
-		  variable rx_cmd_var : t_rx_com := unidentified;
+        variable cnt1              : integer range 0 to 36000 := 0;
+        variable cnt2              : integer range 0 to 4 := 0;
+        variable init              : integer range 0 to 15 := 0;
+        variable pic_y             : integer range 0 to 1023 := 0;
+        variable pic_x             : integer range 0 to 2047 := 0;
+        variable bf_y              : integer range 0 to 1023 := 7; --speichert letzten Zeile des picture arrays zum Vergleich mit VGA-Modul
+        variable rd_cnt            : integer range 0 to 31 := 0;
+        variable row               : integer range 0 to 2047 := 25;
+        variable rd                : integer range 0 to 15 := 0;
+        variable array_x           : integer range 0 to 1023 := 0;
+        variable array_y           : integer range 0 to 7 := 0;
+        variable cnt3              : integer range 0 to 511 := 0;
+        variable dbg_cyc_count_int : integer := 0;
+        variable wr                : integer range 0 to 15 := 0;
+        variable page_to_write     : integer range 0 to 2047 := 0;
+
+          --variable received_pic_counter : integer range 0 to 7 := 0;
+
+        variable rx_cmd_var : t_rx_com := unidentified;
 
     begin
         if (reset = '0') then
@@ -212,32 +231,35 @@ begin
             iCS   <= '1';
             buf_y <= "0000000111";
 
-            initialized <= '0';
-            rd_req      <= '0';
-            rd_done     <= '0';
-				rx_busy_last<= '0';
-				rx_cmd <= unidentified;
-				pic_received<= '0';
-				farbelinks <= x"000";
-				farberechts<= x"000";
-				
-				byte_counter <= 0;
-				page_counter <= 0;
-				
+            initialized  <= '0';
+            rd_req       <= '0';
+            rd_done      <= '0';
+            rx_busy_last <= '0';
+            rx_cmd       <= unidentified;
+            pic_received <= '0';
+            farbelinks   <= x"000";
+            farberechts  <= x"000";
+            refreshed    <= '0';
 
-            cnt1    := 0;
-            cnt2    := 0;
-            init    := 0;
-            pic_y   := 0;
-            pic_x   := 0;
-            bf_y    := 7; --speichert letzten Zeile des picture arrays zum Vergleich mit VGA-Modul
-            rd_cnt  := 0;
-            row     := 25;
-            rd      := 0;
-            array_x := 0;
-            array_y := 0;
-            cnt3    := 0;
-				received_pic_counter := 0;
+            byte_counter <= 0;
+            page_counter <= 0;
+
+
+            cnt1          := 0;
+            cnt2          := 0;
+            init          := 0;
+            pic_y         := 0;
+            pic_x         := 0;
+            bf_y          := 7; --speichert letzten Zeile des picture arrays zum Vergleich mit VGA-Modul
+            rd_cnt        := 0;
+            row           := 25;
+            rd            := 0;
+            array_x       := 0;
+            array_y       := 0;
+            cnt3          := 0;
+            wr            := 0;
+            page_to_write := 0;
+                --received_pic_counter := 0;
 
         elsif (clk'EVENT and clk = '1') then
             case current_state is
@@ -247,77 +269,150 @@ begin
                 -- get this shiat done ----------------------------------------------------------------
                 ---------------------------------------------------------------------------------------
                 when s_wait_for_com =>
-						  pic_received <= '0';
-                    data_out <= x"00";
-                    TX_start <= '0';
-						  IF rx_busy = '1' THEN
-								rx_busy_last <= '1';
-						  ELSIF rx_busy = '0' AND rx_busy_last = '1' THEN
-						  rx_busy_last <= '0';
-						  rx_cmd_var := get_rx_command(data_in);
-						  rx_cmd <= rx_cmd_var;
-								if rx_cmd_var = check_com then
-									tx_cmd <= board_ack;
-								else
-									tx_cmd <= unidentified;
-								end if;	
-						  END IF;
+                    pic_received <= '0';
+                    data_out     <= x"00";
+                    TX_start     <= '0';
+                    if rx_busy = '1' then
+                        rx_busy_last <= '1';
+                    elsif rx_busy = '0' and rx_busy_last = '1' then
+                        rx_busy_last <= '0';
+                        rx_cmd_var := get_rx_command(data_in);
+                        rx_cmd <= rx_cmd_var;
+                        if rx_cmd_var = check_com then
+                            tx_cmd <= board_ack;
+                        else
+                            tx_cmd <= unidentified;
+                        end if;
+                    end if;
 
                 when s_transmit_response =>
-						  rx_cmd <= unidentified;
-                    data_out <= get_tx_command(tx_cmd);
-                    TX_start <= '1';
-						  rx_busy_last <= '0';
+                    rx_cmd       <= unidentified;
+                    data_out     <= get_tx_command(tx_cmd);
+                    TX_start     <= '1';
+                    rx_busy_last <= '0';
 
                 when s_wait_for_tx =>
-                    TX_start <= '0';
-						  rx_busy_last <= '0';
-						  
-				   when s_receive_pic =>
-						outer_if : if rx_busy = '1' then
-                        rx_busy_last <= '1';
-						ELSIF rx_busy = '0' AND rx_busy_last = '1' THEN
-								rx_busy_last <= '0';
-								
-								inner_if : if page_counter = 1874 then
-									--done
-									page_counter <= 0;
-									byte_counter <= 0;
-									byte_toggle <= '0';
-									pic_received <= '1';
-								
-								elsif byte_counter = 255 AND byte_toggle = '1' then
-									-- page done
-									byte_counter <= 0;
-									byte_toggle <= '0';
-									page_counter <= page_counter + 1;
-									page_received <= '1';
-								
-								elsif byte_toggle = '0' then
-									--write upper 4 bit
-									rec_buff(byte_counter)(11 downto 8) <= data_in(3 downto 0);
-									byte_toggle <= '1';
-									
-								elsif byte_toggle = '1' then
-									--write lower 8 bit
-									rec_buff(byte_counter)(7 downto 0) <= data_in;
-									byte_toggle <= '0';
-									byte_counter <= byte_counter + 1;
-									
-								end if inner_if;                       
-                end if outer_if;
-					 
-					 when s_ram_fullpagewrite =>
-						--do your magic here
-						
+                    TX_start     <= '0';
+                    rx_busy_last <= '0';
 
-						tx_cmd <= end_of_block;
-						page_received <= '0';
-							
+                when s_receive_pic =>
+                    dbg_cyc_count_int := dbg_cyc_count_int+1;
+
+                    outer_if : if rx_busy = '1' then
+                        rx_busy_last <= '1';
+                    elsif rx_busy = '0' and rx_busy_last = '1' then
+                        rx_busy_last <= '0';
+
+                        inner_if : if page_counter = 1875 then
+                                    --done
+                            page_counter <= 0;
+                            byte_counter <= 0;
+                            byte_toggle  <= '0';
+                            pic_received <= '1';
+
+                        elsif byte_counter = 255 and byte_toggle = '1' then
+                                    -- page done
+                            dbg_cyc_count <= std_logic_vector(to_unsigned(dbg_cyc_count_int, 28));
+                            dbg_cyc_count_int := 0;
+                            byte_counter  <= 0;
+                            byte_toggle   <= '0';
+                            page_counter  <= page_counter + 1;
+                            page_received <= '1';
+
+                        elsif byte_toggle = '0' then
+                                    --write upper 4 bit
+                            rec_buff(byte_counter)(7 downto 0) <= data_in(7 downto 0);
+                            byte_toggle                         <= '1';
+
+                        elsif byte_toggle = '1' then
+                                    --write lower 8 bit
+                            rec_buff(byte_counter)(11 downto 8) <= data_in(3 downto 0);
+                            byte_toggle                        <= '0';
+                            byte_counter                       <= byte_counter + 1;
+
+                        end if inner_if;
+                    end if outer_if;
+
+                     ---------------------------------------------------------------------------------------------------------------------------------------------------
+                -- Fullpage-Write ---------------------------------------------------------------------------------------------------------------------------------
+                -- beschreibt eine Zeile (page)des SDRAM mit den Daten im rs_232-Puffer ---------------------------------------------------------------------------
+                ---------------------------------------------------------------------------------------------------------------------------------------------------
+                when s_ram_fullpagewrite =>
+                    tx_cmd        <= end_of_block;
+                    page_received <= '0';
+
+                    if wr = 0 then          --bank active
+                        iADDR <= std_LOGIC_VECTOR(to_unsigned((page_to_write), iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                        --iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                        wr := wr+1;
+
+                    elsif wr = 1 then       --tRCD
+                        iCS <= '1';
+                        if cnt2 < 1 then
+                            cnt2 := cnt2+1;
+                        else
+                            cnt2 := 0;
+                            wr   := wr+1;
+                        end if;
+
+                    elsif wr = 2 then       --write
+                        iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
+                        DRAM_DQ <= "0000" & rec_buff(cnt3);
+                        --DRAM_DQ <= x"0FF0";
+                        cnt3 := 1;
+                        wr   := wr+1;
+
+
+                    elsif wr = 3 then       --write die restlichen 255 words
+                        iCS <= '1';
+                        if cnt3 < 255 then
+                            DRAM_DQ <= "0000" & rec_buff(cnt3);
+                            --DRAM_DQ <= x"0FF0";
+                            cnt3 := cnt3+1;
+                        else
+                            cnt3 := 0;
+                            wr   := wr+1;
+                        end if;
+
+                    elsif wr = 4 then       --tRDL
+                        if cnt3 < 1 then
+                            cnt3 := cnt3+1;
+                        else
+                            cnt3 := 0;
+                            wr   := wr+1;
+                        end if;
+
+                    elsif wr = 5 then       --precharge
+                        iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+                        wr := wr+1;
+
+                    elsif wr = 6 then       --tRP
+                        iCS <= '1';
+                        if cnt2 < 1 then
+                            cnt2 := cnt2+1;
+                        else
+                            page_to_write := page_to_write +1;
+                            wr_done <= '1';
+                            cnt2 := 0;
+                            wr:=0;
+                        end if;
+
+                    else
+                        wr := 0;
+
+                    end if;
+
+                ---------------------------------------------------------------------------------------------------------------------------------------------------
+                -- RAM - refresh ----------------------------------------------------------------------------------------------------------------------------------
+                -- refresht Bank 0, damit keine Daten verloren gehen ----------------------------------------------------------------------------------------------
+                --------------------------------------------------------------------------------------------------------------------------------------------------- 
+                when s_ram_refresh =>
+                    wr_done   <= '0';
+                    refreshed <= '1';
 
                 ---------------------------------------------------------------------------------------------------------------------------------------------------
                 -- Initialisierung --------------------------------------------------------------------------------------------------------------------------------
-                -- Durchlaeuft die Initialisierungssequenz laut Datenblatt und wechselt anschliessend in den Zustand s_ram_idle ---------------------------------------
+                -- Durchlaeuft die Initialisierungssequenz laut Datenblatt und wechselt anschliessend in den Zustand s_ram_idle -----------------------------------
                 --------------------------------------------------------------------------------------------------------------------------------------------------- 
                 when s_ram_init =>
                     DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
@@ -423,6 +518,7 @@ begin
                     if rd_cnt < 25 then           --fuehrt 25 full page rds durch
                         if rd = 0 then              --Bank Active (ACT) + row auf adresspin
                             iADDR <= std_logic_vector(to_unsigned(row, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            --iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             rd := rd+1;
 
                         elsif rd = 1 then           --tRCD
@@ -552,7 +648,7 @@ begin
 
         elsif (clk'EVENT and clk = '1') then
             case current_state is
-					
+
                 when s_ram_init =>
                     ipixel <= x"FFFF";
 
@@ -563,29 +659,23 @@ begin
 
                     arr_y := (pic_y-bf_y);
 
-                    if pic_x < 400 then
-                        ipixel <= "0000" & farbelinks;
+                    if arr_y = 0 then
+                        ipixel <= "0000" & pic_buf7(pic_x);
+                    elsif arr_y = 1 then
+                        ipixel <= "0000" & pic_buf6(pic_x);
+                    elsif arr_y = 2 then
+                        ipixel <= "0000" & pic_buf5(pic_x);
+                    elsif arr_y = 3 then
+                        ipixel <= "0000" & pic_buf4(pic_x);
+                    elsif arr_y = 4 then
+                        ipixel <= "0000" & pic_buf3(pic_x);
+                    elsif arr_y = 5 then
+                        ipixel <= "0000" & pic_buf2(pic_x);
+                    elsif arr_y = 6 then
+                        ipixel <= "0000" & pic_buf1(pic_x);
                     else
-                        ipixel <= "0000" & farberechts;
+                        ipixel <= "0000" & pic_buf0(pic_x);
                     end if;
-
-                    --if arr_y = 0 then
-                    --    ipixel <= "0000" & pic_buf7(pic_x);
-                    --elsif arr_y = 1 then
-                    --    ipixel <= "0000" & pic_buf6(pic_x);
-                    --elsif arr_y = 2 then
-                    --    ipixel <= "0000" & pic_buf5(pic_x);
-                    --elsif arr_y = 3 then
-                    --    ipixel <= "0000" & pic_buf4(pic_x);
-                    --elsif arr_y = 4 then
-                    --    ipixel <= "0000" & pic_buf3(pic_x);
-                    --elsif arr_y = 5 then
-                    --    ipixel <= "0000" & pic_buf2(pic_x);
-                    --elsif arr_y = 6 then
-                    --    ipixel <= "0000" & pic_buf1(pic_x);
-                    --else
-                    --    ipixel <= "0000" & pic_buf0(pic_x);
-                    --end if;
 
                 when s_ram_rd =>
                     pic_x := to_integer(unsigned(Hcnt(10 downto 0)));
@@ -594,29 +684,24 @@ begin
 
                     arr_y := (pic_y-bf_y);
 
-                    if pic_x < 400 then
-                        ipixel <= "0000" & farbelinks;
+                    if arr_y = 0 then
+                        ipixel <= "0000" & pic_buf7(pic_x);
+                    elsif arr_y = 1 then
+                        ipixel <= "0000" & pic_buf6(pic_x);
+                    elsif arr_y = 2 then
+                        ipixel <= "0000" & pic_buf5(pic_x);
+                    elsif arr_y = 3 then
+                        ipixel <= "0000" & pic_buf4(pic_x);
+                    elsif arr_y = 4 then
+                        ipixel <= "0000" & pic_buf3(pic_x);
+                    elsif arr_y = 5 then
+                        ipixel <= "0000" & pic_buf2(pic_x);
+                    elsif arr_y = 6 then
+                        ipixel <= "0000" & pic_buf1(pic_x);
                     else
-                        ipixel <= "0000" & farberechts;
+                        ipixel <= "0000" & pic_buf0(pic_x);
                     end if;
 
-                    --if arr_y = 0 then
-                    --    ipixel <= "0000" & pic_buf7(pic_x);
-                    --elsif arr_y = 1 then
-                    --    ipixel <= "0000" & pic_buf6(pic_x);
-                    --elsif arr_y = 2 then
-                    --    ipixel <= "0000" & pic_buf5(pic_x);
-                    --elsif arr_y = 3 then
-                    --    ipixel <= "0000" & pic_buf4(pic_x);
-                    --elsif arr_y = 4 then
-                    --    ipixel <= "0000" & pic_buf3(pic_x);
-                    --elsif arr_y = 5 then
-                    --    ipixel <= "0000" & pic_buf2(pic_x);
-                    --elsif arr_y = 6 then
-                    --    ipixel <= "0000" & pic_buf1(pic_x);
-                    --else
-                    --    ipixel <= "0000" & pic_buf0(pic_x);
-                    --end if;
 
                 when others =>
                     null;
