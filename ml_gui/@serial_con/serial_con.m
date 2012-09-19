@@ -140,7 +140,7 @@ classdef serial_con < handle
     methods
         %constructor
         function obj = serial_con()
-            obj.ser_port = serial('COM1', 'BAUD', 115200);
+            obj.ser_port = serial('COM1', 'BAUD', 115200, 'OutputBufferSize', 1024);
         end
     end
     

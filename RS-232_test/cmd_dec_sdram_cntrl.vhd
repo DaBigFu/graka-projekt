@@ -69,8 +69,8 @@ architecture beh of cmd_dec_sdram_cntrl is
 
      --buffers counters etc fÃ¼r bildempfang
     signal rec_buff     : t_rec_buff;
-    signal page_counter : INTEGER range 0 to 1874 := 0;
-    signal byte_counter : INTEGER range 0 to 255 := 0;
+    signal page_counter : INTEGER range 0 to 1875 := 0;
+    signal byte_counter : INTEGER range 0 to 256 := 0;
     signal byte_toggle  : STD_LOGIC := '0';
 
 begin
@@ -304,29 +304,29 @@ begin
 
                 when s_receive_pic =>
                     dbg_cyc_count_int := dbg_cyc_count_int+1;
+						  
+						  
+						  outer_if : if byte_counter = 256 then
+                                    -- page done
+                        dbg_cyc_count <= std_logic_vector(to_unsigned(dbg_cyc_count_int, 28));
+                        dbg_cyc_count_int := 0;
+                        byte_counter  <= 0;
+                        byte_toggle   <= '0';
+                        page_counter  <= page_counter + 1;
+                        page_received <= '1';
 
-                    outer_if : if rx_busy = '1' then
+                    elsif page_counter = 1875 then
+                                    --done
+                        byte_counter <= 0;
+                        byte_toggle  <= '0';
+                        pic_received <= '1';
+
+                    elsif rx_busy = '1' then						  
                         rx_busy_last <= '1';
                     elsif rx_busy = '0' and rx_busy_last = '1' then
-                        rx_busy_last <= '0';
+                        rx_busy_last <= '0';                        
 
-                        inner_if : if page_counter = 1874 then
-                                    --done
-                            page_counter <= 0;
-                            byte_counter <= 0;
-                            byte_toggle  <= '0';
-                            pic_received <= '1';
-
-                        elsif byte_counter = 255 and byte_toggle = '1' then
-                                    -- page done
-                            dbg_cyc_count <= std_logic_vector(to_unsigned(dbg_cyc_count_int, 28));
-                            dbg_cyc_count_int := 0;
-                            byte_counter  <= 0;
-                            byte_toggle   <= '0';
-                            page_counter  <= page_counter + 1;
-                            page_received <= '1';
-
-                        elsif byte_toggle = '0' then
+                        inner_if : if byte_toggle = '0' then
                                     --write upper 4 bit
                             rec_buff(byte_counter)(11 downto 8) <= data_in(3 downto 0);
                             byte_toggle                         <= '1';
@@ -372,7 +372,7 @@ begin
 
                     elsif wr = 3 then       --write die restlichen 255 words
                         iCS <= '1';
-                        if cnt3 < 255 then
+                        if cnt3 < 253 then
                             DRAM_DQ <= "0000" & rec_buff(cnt3);
                             --DRAM_DQ <= x"0FF0";
                             cnt3 := cnt3+1;
