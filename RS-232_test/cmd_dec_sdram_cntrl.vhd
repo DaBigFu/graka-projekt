@@ -372,7 +372,7 @@ begin
 
                     elsif wr = 3 then       --write die restlichen 255 words
                         iCS <= '1';
-                        if cnt3 < 253 then
+                        if cnt3 < 255 then
                             DRAM_DQ <= "0000" & rec_buff(cnt3);
                             --DRAM_DQ <= x"0FF0";
                             cnt3 := cnt3+1;

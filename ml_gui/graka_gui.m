@@ -22,7 +22,7 @@ function varargout = graka_gui(varargin)
 
 % Edit the above text to modify the response to help graka_gui
 
-% Last Modified by GUIDE v2.5 17-Sep-2012 22:11:17
+% Last Modified by GUIDE v2.5 19-Sep-2012 19:44:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,11 +55,15 @@ function graka_gui_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for graka_gui
 handles.output = hObject;
 handles.ser = serial_con();
+guidata(hObject, handles);
+handles.dbg_gui = dbg_gui(hObject);
+set(handles.dbg_gui, 'Visible', 'off');
+set( get(handles.write_file_panel, 'children'), 'enable', 'off');
 % Update handles structure
 guidata(hObject, handles);
 
 % UIWAIT makes graka_gui wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+% uiwait(handles.ser_gui);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -143,10 +147,11 @@ guidata(hObject, handles);
 
 
 % --- Executes during object deletion, before destroying properties.
-function figure1_DeleteFcn(hObject, eventdata, handles)
-% hObject    handle to figure1 (see GCBO)
+function ser_gui_DeleteFcn(hObject, eventdata, handles)
+% hObject    handle to ser_gui (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+delete(handles.dbg_gui);
 handles.ser.close_port();
 
 
@@ -290,4 +295,13 @@ handles.ser.write_array(file_array,512,1875);
 profile off
 profile viewer
 
+guidata(hObject, handles);
+
+
+% --- Executes on button press in pb_open_dbg.
+function pb_open_dbg_Callback(hObject, eventdata, handles)
+% hObject    handle to pb_open_dbg (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+set(handles.dbg_gui, 'Visible', 'on');
 guidata(hObject, handles);
