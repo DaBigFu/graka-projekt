@@ -23,10 +23,11 @@ entity cmd_dec_sdram_cntrl is
         rx_busy  : in std_logic;
         tx_busy  : in std_logic;
 
-        dbg_state      : out STD_LOGIC_VECTOR(3 downto 0);
-        dbg_page_count : out integer range 0 to 1874;
-        dbg_byte_count : out integer range 0 to 255;
-        dbg_cyc_count  : out std_logic_vector(27 downto 0)
+        dbg_state       : out STD_LOGIC_VECTOR(3 downto 0);
+        dbg_page_count  : out integer range 0 to 1874;
+        dbg_byte_count  : out integer range 0 to 255;
+        dbg_cyc_count   : out std_logic_vector(27 downto 0);
+        dbg_refresh_cyc : out std_logic_vector(15 downto 0)
 
     );
 
@@ -139,7 +140,7 @@ begin
                 if page_received = '1' then
                     next_state <= s_ram_fullpagewrite;
                 elsif pic_received = '1' then
-                    next_state <= s_ram_idle;
+                    next_state <= s_ram_fullpagewrite;
                 else
                     next_state <= s_receive_pic;
                 end if;
@@ -153,7 +154,9 @@ begin
 
 
             when s_ram_refresh =>
-                if refreshed = '1' then
+                if refreshed = '1' and pic_received = '1' then
+                    next_state <= s_ram_idle;
+                elsif refreshed = '1' and pic_received = '0' then
                     next_state <= s_transmit_response;
                 else
                     next_state <= s_ram_refresh;
@@ -215,6 +218,7 @@ begin
         variable page_to_write     : integer range 0 to 2047 := 0;
         variable refresh           : integer range 0 to 15 := 0;
         variable refresh_cnt       : integer range 0 to 8191 := 0;
+        variable dbg_refresh_int   : integer range 0 to 65000 := 0;
 
           --variable received_pic_counter : integer range 0 to 7 := 0;
 
@@ -361,9 +365,9 @@ begin
                         end if;
 
                     elsif wr = 2 then       --write
-                        iADDR   <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-                        DRAM_DQ <= "0000" & rec_buff(cnt3);
-                        --DRAM_DQ <= x"0FF0";
+                        iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
+                        --DRAM_DQ <= "0000" & rec_buff(cnt3);
+                        DRAM_DQ <= x"00F0";
                         cnt3 := 1;
                         wr   := wr+1;
 
@@ -371,8 +375,8 @@ begin
                     elsif wr = 3 then       --write die restlichen 255 words
                         iCS <= '1';
                         if cnt3 < 255 then
-                            DRAM_DQ <= "0000" & rec_buff(cnt3);
-                            --DRAM_DQ <= x"0FF0";
+                            --DRAM_DQ <= "0000" & rec_buff(cnt3);
+                            DRAM_DQ <= x"00F0";
                             cnt3 := cnt3+1;
                         else
                             cnt3 := 0;
@@ -413,20 +417,43 @@ begin
                 --------------------------------------------------------------------------------------------------------------------------------------------------- 
                 when s_ram_refresh =>
                     wr_done <= '0';
-                    if refresh_cnt < 4096 then
-                        if refresh = 0 then   --auto refresh
-                            iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '0'; iWE <= '1';
-                            refresh := 1;
-                        elsif refresh < 8 then --tARFC
-                            iCS <= '1';
-                            refresh := refresh+1;
+                   
+
+                    if refresh = 0 then     --PALL
+                        iADDR <= "0010000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+                        refresh := refresh+1;
+                         dbg_refresh_int := dbg_refresh_int+1;
+                    elsif refresh = 1 then
+                        iCS <= '1';
+                        
+                        if cnt2 < 1 then
+                            cnt2 := cnt2+1;
                         else
-                            refresh_cnt := refresh_cnt+1;
-                            refresh     := 0;
+                            refresh := refresh+1;
+                            cnt2    := 0;
+                        end if;
+
+                    elsif refresh = 2 then   --auto refresh
+                        iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '0'; iWE <= '1';
+                        refresh := refresh+1;
+                        
+                    elsif refresh < 9 then --tARFC
+                        iCS <= '1';
+                        refresh := refresh+1;
+                        
+                    elsif refresh = 9 then
+                        refresh_cnt := refresh_cnt+1;
+                        if refresh_cnt < 4096 then
+                            refresh := 2;
+                        else
+                            refresh:=0;
+                            refreshed <= '1';
+                            refresh_cnt := 0;
+                            dbg_refresh_cyc <= std_logic_vector(to_unsigned(dbg_refresh_int, 16));
+                            --dbg_refresh_int := 0;
                         end if;
                     else
-                        refreshed <= '1';
-                        refresh_cnt := 0;
+                        refresh := 0;
                     end if;
 
                 ---------------------------------------------------------------------------------------------------------------------------------------------------
