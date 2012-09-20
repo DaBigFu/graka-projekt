@@ -68,7 +68,7 @@ architecture beh of cmd_dec_sdram_cntrl is
     --attribute ramstyle of beh : architecture is "M9K";
 
      --buffers counters etc fÃ¼r bildempfang
-    signal rec_buff     : t_rec_buff;
+    signal rec_buff     : t_rec_buff := (others => x"000");
     signal page_counter : INTEGER range 0 to 1875 := 0;
     signal byte_counter : INTEGER range 0 to 256 := 0;
     signal byte_toggle  : STD_LOGIC := '0';
@@ -130,6 +130,8 @@ begin
             when s_wait_for_tx =>
                 if tx_busy = '1' then
                     next_state <= s_wait_for_tx;
+					 elsif tx_busy = '0' and pic_received = '1' then
+						  next_state <= s_ram_idle;
                 elsif tx_busy = '0' and page_counter > 0 then
                     next_state <= s_receive_pic;
                 else
@@ -140,7 +142,7 @@ begin
                 if page_received = '1' then
                     next_state <= s_ram_fullpagewrite;
                 elsif pic_received = '1' then
-                    next_state <= s_ram_idle;
+                    next_state <= s_ram_fullpagewrite;
                 else
                     next_state <= s_receive_pic;
                 end if;
@@ -200,7 +202,7 @@ begin
     output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy, byte_toggle, byte_counter, page_counter, data_in)
 
         variable cnt1              : integer range 0 to 36000 := 0;
-        variable cnt2              : integer range 0 to 4 := 0;
+        variable cnt2              : integer range 0 to 15 := 0;
         variable init              : integer range 0 to 15 := 0;
         variable pic_y             : integer range 0 to 1023 := 0;
         variable pic_x             : integer range 0 to 2047 := 0;
@@ -234,6 +236,7 @@ begin
             iCKE  <= '0';
             iCS   <= '1';
             buf_y <= "0000000111";
+				byte_toggle<= '0';
 
             initialized  <= '0';
             rd_req       <= '0';
@@ -315,7 +318,7 @@ begin
                         page_counter  <= page_counter + 1;
                         page_received <= '1';
 
-                    elsif page_counter = 1875 then
+                    elsif page_counter = 1875 then --1875
                                     --done
                         byte_counter <= 0;
                         byte_toggle  <= '0';
@@ -328,19 +331,19 @@ begin
 
                         inner_if : if byte_toggle = '0' then
                                     --write upper 4 bit
-                            rec_buff(byte_counter)(11 downto 8) <= data_in(3 downto 0);
+                            rec_buff(byte_counter)(11 downto 5) <= data_in(7 downto 4)&data_in(2 downto 0);
                             byte_toggle                         <= '1';
 
                         elsif byte_toggle = '1' then
                                     --write lower 8 bit
-                            rec_buff(byte_counter)(7 downto 0) <= data_in(7 downto 0);
+                            rec_buff(byte_counter)(4 downto 0) <= data_in(7)&data_in(4 downto 1);
                             byte_toggle                        <= '0';
                             byte_counter                       <= byte_counter + 1;
 
                         end if inner_if;
                     end if outer_if;
 
-                     ---------------------------------------------------------------------------------------------------------------------------------------------------
+                ---------------------------------------------------------------------------------------------------------------------------------------------------
                 -- Fullpage-Write ---------------------------------------------------------------------------------------------------------------------------------
                 -- beschreibt eine Zeile (page)des SDRAM mit den Daten im rs_232-Puffer ---------------------------------------------------------------------------
                 ---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -355,9 +358,12 @@ begin
 
                     elsif wr = 1 then       --tRCD
                         iCS <= '1';
+                        dbg_refresh_int := dbg_refresh_int+1;
                         if cnt2 < 1 then
                             cnt2 := cnt2+1;
                         else
+                            dbg_refresh_cyc <= std_logic_vector(to_unsigned(dbg_refresh_int, 16));
+                            dbg_refresh_int := 0;
                             cnt2 := 0;
                             wr   := wr+1;
                         end if;
@@ -365,23 +371,27 @@ begin
                     elsif wr = 2 then       --write
                         iADDR   <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
                         DRAM_DQ <= "0000" & rec_buff(cnt3);
-                        --DRAM_DQ <= x"0FF0";
-                        cnt3 := 1;
+                        --DRAM_DQ <= x"0F00";
+                        cnt3 := cnt3+1;
                         wr   := wr+1;
 
-
+                   
+                        
                     elsif wr = 3 then       --write die restlichen 255 words
                         iCS <= '1';
-                        if cnt3 < 255 then
+                        if cnt3 < 256 then
                             DRAM_DQ <= "0000" & rec_buff(cnt3);
-                            --DRAM_DQ <= x"0FF0";
+                            --DRAM_DQ <= std_logic_vector(to_unsigned(cnt3, DRAM_DQ'length));
+                            
                             cnt3 := cnt3+1;
                         else
+                            iRAS<='1'; iCAS<='1'; iWE<='0'; iCS<='0';   --burststop
                             cnt3 := 0;
                             wr   := wr+1;
                         end if;
 
                     elsif wr = 4 then       --tRDL
+                        iCS<='1';
                         if cnt3 < 1 then
                             cnt3 := cnt3+1;
                         else
@@ -420,7 +430,7 @@ begin
                     if refresh = 0 then     --PALL
                         iADDR <= "0010000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
                         refresh := refresh+1;
-                         dbg_refresh_int := dbg_refresh_int+1;
+                         
                     elsif refresh = 1 then
                         iCS <= '1';
                         
@@ -454,8 +464,8 @@ begin
                             refresh:=2;
                             refreshed <= '1';
                             refresh_cnt := 0;
-                            dbg_refresh_cyc <= std_logic_vector(to_unsigned(dbg_refresh_int, 16));
-                            --dbg_refresh_int := 0;
+                           
+                            
                         end if;
                     else
                         refresh := 0;
@@ -517,7 +527,7 @@ begin
                         end if;
 
                     elsif init = 7 then         --MRS, full page
-                        iADDR <= "0000000100111"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '0'; iWE <= '0';
+                        iADDR <= "0000000110111"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '0'; iWE <= '0';
                         init := init+1;
 
                     elsif init = 8 then         --tMRD
@@ -551,7 +561,7 @@ begin
                     pic_y := to_integer(unsigned(Vcnt(9 downto 0)));
                     bf_y  := to_integer(unsigned(buf_y(9 downto 0)));
 
-                    if pic_x = 739 and bf_y = (pic_y+4) then          --nach 4900 pixel, oder 98us - also 4 Zeilen und 740 pixel
+                    if pic_x = 760 and bf_y = (pic_y+3) then          --nach 4900 pixel, oder 98us - also 4 Zeilen und 740 pixel
                         rd_req <= '1';
                     end if;
 
@@ -587,11 +597,12 @@ begin
 
                         elsif rd = 3 then           --CAS latency
                             iCS <= '1';
-                            if cnt2 < 1 then
+                            if cnt2 < 2 then
                                 cnt2 := cnt2+1;
                             else
                                 rd   := rd+1;
                                 cnt2 := 0;
+                                cnt3:=0;
                             end if;
 
                         elsif rd = 4 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
@@ -615,12 +626,13 @@ begin
                                 end if;
 
                                 array_x := array_x+1;
-                                if array_x > 799 then
+                                if array_x > 799 then --ich bin awesome
                                     array_x := 0;
                                     array_y := array_y+1;
                                 end if;
                                 cnt3 := cnt3+1;
                             else
+                                
                                 rd   := rd+1;
                                 cnt3 := 0;
                             end if;
@@ -708,24 +720,24 @@ begin
                     pic_y := to_integer(unsigned(Vcnt(9 downto 0)));
                     bf_y  := to_integer(unsigned(buf_y(9 downto 0)));
 
-                    arr_y := (pic_y-bf_y);
-
+                    --arr_y := (pic_y-bf_y);
+                    arr_y := (bf_y-pic_y);
                     if arr_y = 0 then
-                        ipixel <= "0000" & pic_buf0(pic_x);
-                    elsif arr_y = 1 then
-                        ipixel <= "0000" & pic_buf1(pic_x);
-                    elsif arr_y = 2 then
-                        ipixel <= "0000" & pic_buf2(pic_x);
-                    elsif arr_y = 3 then
-                        ipixel <= "0000" & pic_buf3(pic_x);
-                    elsif arr_y = 4 then
-                        ipixel <= "0000" & pic_buf4(pic_x);
-                    elsif arr_y = 5 then
-                        ipixel <= "0000" & pic_buf5(pic_x);
-                    elsif arr_y = 6 then
-                        ipixel <= "0000" & pic_buf6(pic_x);
-                    else
                         ipixel <= "0000" & pic_buf7(pic_x);
+                    elsif arr_y = 1 then
+                        ipixel <= "0000" & pic_buf6(pic_x);
+                    elsif arr_y = 2 then
+                        ipixel <= "0000" & pic_buf5(pic_x);
+                    elsif arr_y = 3 then
+                        ipixel <= "0000" & pic_buf4(pic_x);
+                    elsif arr_y = 4 then
+                        ipixel <= "0000" & pic_buf3(pic_x);
+                    elsif arr_y = 5 then
+                        ipixel <= "0000" & pic_buf2(pic_x);
+                    elsif arr_y = 6 then
+                        ipixel <= "0000" & pic_buf1(pic_x);
+                    else
+                        ipixel <= "0000" & pic_buf0(pic_x);
                     end if;
 
                 when s_ram_rd =>
@@ -733,24 +745,25 @@ begin
                     pic_y := to_integer(unsigned(Vcnt(9 downto 0)));
                     bf_y  := to_integer(unsigned(buf_y(9 downto 0)));
 
-                    arr_y := (pic_y-bf_y);
-
+                    --arr_y := (pic_y-bf_y);
+                    arr_y := (bf_y-pic_y);
+                    
                     if arr_y = 0 then
-                        ipixel <= "0000" & pic_buf0(pic_x);
-                    elsif arr_y = 1 then
-                        ipixel <= "0000" & pic_buf1(pic_x);
-                    elsif arr_y = 2 then
-                        ipixel <= "0000" & pic_buf2(pic_x);
-                    elsif arr_y = 3 then
-                        ipixel <= "0000" & pic_buf3(pic_x);
-                    elsif arr_y = 4 then
-                        ipixel <= "0000" & pic_buf4(pic_x);
-                    elsif arr_y = 5 then
-                        ipixel <= "0000" & pic_buf5(pic_x);
-                    elsif arr_y = 6 then
-                        ipixel <= "0000" & pic_buf6(pic_x);
-                    else
                         ipixel <= "0000" & pic_buf7(pic_x);
+                    elsif arr_y = 1 then
+                        ipixel <= "0000" & pic_buf6(pic_x);
+                    elsif arr_y = 2 then
+                        ipixel <= "0000" & pic_buf5(pic_x);
+                    elsif arr_y = 3 then
+                        ipixel <= "0000" & pic_buf4(pic_x);
+                    elsif arr_y = 4 then
+                        ipixel <= "0000" & pic_buf3(pic_x);
+                    elsif arr_y = 5 then
+                        ipixel <= "0000" & pic_buf2(pic_x);
+                    elsif arr_y = 6 then
+                        ipixel <= "0000" & pic_buf1(pic_x);
+                    else
+                        ipixel <= "0000" & pic_buf0(pic_x);
                     end if;
 
 
