@@ -54,7 +54,7 @@ function dbg_gui_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for dbg_gui
 handles.output = hObject;
-handles.graka_gui = guidata(varargin{:});
+handles.graka_gui = guidata(varargin{:}); % passes the handles to the new gui
 
 % Update handles structure
 guidata(hObject, handles);
