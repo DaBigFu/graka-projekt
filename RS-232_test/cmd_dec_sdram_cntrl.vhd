@@ -626,7 +626,7 @@ begin
                                 end if;
 
                                 array_x := array_x+1;
-                                if array_x > 799 then
+                                if array_x > 799 then --ich bin awesome
                                     array_x := 0;
                                     array_y := array_y+1;
                                 end if;
