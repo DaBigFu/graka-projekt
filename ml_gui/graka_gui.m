@@ -22,7 +22,7 @@ function varargout = graka_gui(varargin)
 
 % Edit the above text to modify the response to help graka_gui
 
-% Last Modified by GUIDE v2.5 19-Sep-2012 19:44:12
+% Last Modified by GUIDE v2.5 21-Sep-2012 13:38:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -287,13 +287,18 @@ function pb_write_file_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 file_in = fopen( [ handles.PathName handles.FileName ], 'r');
-file_array = fread(file_in, [512 1875], 'uint8', 'ieee-be');
-handles.ser.write_uint8(2);
-profile clear
-profile on
-handles.ser.write_array(file_array,512,1875);
-profile off
-profile viewer
+switch handles.bit_depth
+    case 12
+        file_array = fread(file_in, [512 1875], 'uint8', 'ieee-be');
+        handles.ser.write_uint8(2);
+        handles.ser.write_array(file_array,512,1875);
+    case 24
+        file_array = fread(file_in, [768 1875], 'uint8', 'ieee-be');
+        handles.ser.write_uint8(2);
+        handles.ser.write_array(file_array,768,1875);
+    otherwise
+        disp('error in bit depth selection');
+end
 
 guidata(hObject, handles);
 
@@ -305,3 +310,38 @@ function pb_open_dbg_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.dbg_gui, 'Visible', 'on');
 guidata(hObject, handles);
+
+
+% --- Executes when selected object is changed in pan_bit_depth.
+function pan_bit_depth_SelectionChangeFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in pan_bit_depth 
+% eventdata  structure with the following fields (see UIBUTTONGROUP)
+%	EventName: string 'SelectionChanged' (read only)
+%	OldValue: handle of the previously selected object or empty if none was selected
+%	NewValue: handle of the currently selected object
+% handles    structure with handles and user data (see GUIDATA)
+switch get(eventdata.NewValue, 'String')
+    case '12 BPP'
+        handles.bit_depth = 12;
+    case '24 BPP'
+        handles.bit_depth = 24;
+    otherwise
+        handles.bit_depth = -1;
+end
+guidata(hObject, handles);
+        
+
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function pan_bit_depth_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to pan_bit_depth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+handles.bit_depth = 24;
+set(hObject, 'HandleVisibility', 'off');
+guidata(hObject, handles);
+
+

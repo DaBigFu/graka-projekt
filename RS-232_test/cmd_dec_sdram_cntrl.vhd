@@ -27,7 +27,7 @@ entity cmd_dec_sdram_cntrl is
         dbg_page_count : out integer range 0 to 1874;
         dbg_byte_count : out integer range 0 to 255;
         dbg_cyc_count  : out std_logic_vector(27 downto 0);
-		  dbg_refresh_cyc: out std_logic_vector(15 downto 0)
+		dbg_refresh_cyc: out std_logic_vector(15 downto 0)
 
     );
 
@@ -67,15 +67,15 @@ architecture beh of cmd_dec_sdram_cntrl is
     --attribute ramstyle        : string;
     --attribute ramstyle of beh : architecture is "M9K";
 
-     --buffers counters etc fÃ¼r bildempfang
-    signal rec_buff     : t_rec_buff := (others => x"000");
+     --buffers counters etc fÃƒÂ¼r bildempfang
+    signal rec_buff     : t_rec_buff := (others => x"000000");
     signal page_counter : INTEGER range 0 to 1875 := 0;
-    signal byte_counter : INTEGER range 0 to 256 := 0;
-    signal byte_toggle  : STD_LOGIC := '0';
+    signal pixel_counter : INTEGER range 0 to 256 := 0;
+    signal byte_toggle  : STD_LOGIC_VECTOR(1 downto 0) := "00";
 
 begin
 
-    dbg_byte_count <= byte_counter;
+    dbg_byte_count <= pixel_counter;
     dbg_page_count <= page_counter;
 
     with current_state select
@@ -199,7 +199,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy, byte_toggle, byte_counter, page_counter, data_in)
+    output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy, byte_toggle, pixel_counter, page_counter, data_in)
 
         variable cnt1              : integer range 0 to 36000 := 0;
         variable cnt2              : integer range 0 to 15 := 0;
@@ -236,7 +236,7 @@ begin
             iCKE  <= '0';
             iCS   <= '1';
             buf_y <= "0000000111";
-				byte_toggle<= '0';
+				byte_toggle<= "00";
 
             initialized  <= '0';
             rd_req       <= '0';
@@ -248,7 +248,7 @@ begin
             farberechts  <= x"000";
             refreshed    <= '0';
 
-            byte_counter <= 0;
+            pixel_counter <= 0;
             page_counter <= 0;
 
 
@@ -309,19 +309,19 @@ begin
                     dbg_cyc_count_int := dbg_cyc_count_int+1;
 						  
 						  
-						  outer_if : if byte_counter = 256 then
+						  outer_if : if pixel_counter = 256 then
                                     -- page done
                         dbg_cyc_count <= std_logic_vector(to_unsigned(dbg_cyc_count_int, 28));
                         dbg_cyc_count_int := 0;
-                        byte_counter  <= 0;
-                        byte_toggle   <= '0';
+                        pixel_counter  <= 0;
+                        byte_toggle   <= "00";
                         page_counter  <= page_counter + 1;
                         page_received <= '1';
 
                     elsif page_counter = 1875 then --1875
                                     --done
-                        byte_counter <= 0;
-                        byte_toggle  <= '0';
+                        pixel_counter <= 0;
+                        byte_toggle  <= "00";
                         pic_received <= '1';
 
                     elsif rx_busy = '1' then						  
@@ -329,16 +329,20 @@ begin
                     elsif rx_busy = '0' and rx_busy_last = '1' then
                         rx_busy_last <= '0';                        
 
-                        inner_if : if byte_toggle = '0' then
+                        inner_if : if byte_toggle = "00" then
                                     --write upper 4 bit
-                            rec_buff(byte_counter)(11 downto 5) <= data_in(7 downto 4)&data_in(2 downto 0);
-                            byte_toggle                         <= '1';
+                            rec_buff(pixel_counter)(23 downto 16) <= data_in;
+                            byte_toggle                         <= "01";
 
-                        elsif byte_toggle = '1' then
+                        elsif byte_toggle = "01" then
                                     --write lower 8 bit
-                            rec_buff(byte_counter)(4 downto 0) <= data_in(7)&data_in(4 downto 1);
-                            byte_toggle                        <= '0';
-                            byte_counter                       <= byte_counter + 1;
+                            rec_buff(pixel_counter)(15 downto 8) <= data_in;
+                            byte_toggle                        <= "10";
+                                                        
+                        elsif byte_toggle = "10" then
+                            rec_buff(pixel_counter)(7 downto 0) <= data_in;
+                            byte_toggle                        <= "00";                            
+                            pixel_counter <= pixel_counter + 1;
 
                         end if inner_if;
                     end if outer_if;
