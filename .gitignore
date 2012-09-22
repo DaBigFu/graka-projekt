@@ -4,6 +4,7 @@
 ## Project specific
 #################
 
+*.log
 *.bmp
 *.jpg
 *.png
@@ -20,6 +21,10 @@
 *.txt
 *.qdf
 *.ddb
+*.cdf
+*.jdi
+
+testbilder/
 incremental_db/
 simulation/
 db/
