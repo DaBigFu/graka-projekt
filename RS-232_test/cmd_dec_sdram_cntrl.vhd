@@ -15,7 +15,7 @@ entity cmd_dec_sdram_cntrl is
         DRAM_ADDR                  : out STD_LOGIC_VECTOR(12 downto 0);
         BA, DQM                    : out STD_LOGIC_VECTOR(1 downto 0);
         nWE, nCAS, nRAS, nCS, nCKE : out STD_LOGIC;
-        pixel                      : out STD_LOGIC_VECTOR(15 downto 0);
+        pixel                      : out STD_LOGIC_VECTOR(23 downto 0);
 
         data_in  : in std_logic_vector(7 downto 0);
         data_out : out std_logic_vector(7 downto 0);
@@ -45,11 +45,11 @@ architecture beh of cmd_dec_sdram_cntrl is
     signal   iBA, iDQM             : STD_LOGIC_VECTOR(1 downto 0) := "00";
     signal   iWE, iCAS, iRAS, iCKE : STD_LOGIC := '0';
     signal   iCS                   : STD_LOGIC := '1';
-    signal   ipixel                : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
+    signal   ipixel                : STD_LOGIC_VECTOR(23 downto 0) := x"000000";
 
     -- Buffer fuer 8 Zeilen des anzuzeigenden Bildes
-    type pic_array is array (0 to 799) of std_logic_vector(11 downto 0);
-    signal pic_buf0, pic_buf1, pic_buf2, pic_buf3, pic_buf4, pic_buf5, pic_buf6, pic_buf7 : pic_array ;
+    type pic_array is array (0 to 799) of std_logic_vector(15 downto 0);
+    signal pic_buf0, pic_buf1, pic_buf2, pic_buf3, pic_buf4, pic_buf5, pic_buf6, pic_buf7 : pic_array := (others => x"0000") ;
 
     --iterne Signale fuer Kommunikation zwischen den Prozessen
     signal  initialized, rd_done, rd_req, wr_done, refreshed : STD_LOGIC := '0';
@@ -64,8 +64,9 @@ architecture beh of cmd_dec_sdram_cntrl is
     -- temporaere signale
     signal farbelinks  : STD_LOGIC_VECTOR(11 downto 0) := x"FF0";
     signal farberechts : std_logic_vector(11 downto 0) := x"0FF";
-    --attribute ramstyle        : string;
-    --attribute ramstyle of beh : architecture is "M9K";
+	 
+    attribute ramstyle        : string;
+    attribute ramstyle of beh : architecture is "M9K";
 
      --buffers counters etc fÃƒÂ¼r bildempfang
     signal rec_buff     : t_rec_buff := (others => x"000000");
@@ -374,7 +375,7 @@ begin
 
                     elsif wr = 2 then       --write
                         iADDR   <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-                        DRAM_DQ <= "0000" & rec_buff(cnt3);
+                        DRAM_DQ <= rec_buff(cnt3)(23 downto 8);
                         --DRAM_DQ <= x"0F00";
                         cnt3 := cnt3+1;
                         wr   := wr+1;
@@ -384,7 +385,7 @@ begin
                     elsif wr = 3 then       --write die restlichen 255 words
                         iCS <= '1';
                         if cnt3 < 256 then
-                            DRAM_DQ <= "0000" & rec_buff(cnt3);
+                            DRAM_DQ <= rec_buff(cnt3)(23 downto 8);
                             --DRAM_DQ <= std_logic_vector(to_unsigned(cnt3, DRAM_DQ'length));
                             
                             cnt3 := cnt3+1;
@@ -612,21 +613,21 @@ begin
                         elsif rd = 4 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
                             if cnt3 < 256 then
                                 if array_y = 0 then
-                                    pic_buf0(array_x) <= DRAM_DQ(11 downto 0);
+                                    pic_buf0(array_x) <= DRAM_DQ(15 downto 0);
                                 elsif array_y = 1 then
-                                    pic_buf1(array_x) <= DRAM_DQ(11 downto 0);
+                                    pic_buf1(array_x)<= DRAM_DQ(15 downto 0);
                                 elsif array_y = 2 then
-                                    pic_buf2(array_x) <= DRAM_DQ(11 downto 0);
+                                    pic_buf2(array_x) <= DRAM_DQ(15 downto 0);
                                 elsif array_y = 3 then
-                                    pic_buf3(array_x) <= DRAM_DQ(11 downto 0);
+                                    pic_buf3(array_x) <= DRAM_DQ(15 downto 0);
                                 elsif array_y = 4 then
-                                    pic_buf4(array_x) <= DRAM_DQ(11 downto 0);
+                                    pic_buf4(array_x) <= DRAM_DQ(15 downto 0);
                                 elsif array_y = 5 then
-                                    pic_buf5(array_x) <= DRAM_DQ(11 downto 0);
+                                    pic_buf5(array_x)<= DRAM_DQ(15 downto 0);
                                 elsif array_y = 6 then
-                                    pic_buf6(array_x) <= DRAM_DQ(11 downto 0);
+                                    pic_buf6(array_x) <= DRAM_DQ(15 downto 0);
                                 else
-                                    pic_buf7(array_x) <= DRAM_DQ(11 downto 0);
+                                    pic_buf7(array_x) <= DRAM_DQ(15 downto 0);
                                 end if;
 
                                 array_x := array_x+1;
@@ -701,7 +702,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    VGA_out : process (clk, reset, current_state,ipixel)
+    VGA_out : process (clk, reset, current_state, ipixel, Hcnt, Vcnt, buf_y, pic_buf0, pic_buf1, pic_buf2, pic_buf3, pic_buf4, pic_buf5, pic_buf6, pic_buf7)
 
         variable pic_y : integer range 0 to 1023 := 0;
         variable pic_x : integer range 0 to 1023 := 0;
@@ -709,40 +710,41 @@ begin
         variable arr_y : integer range 0 to 7 := 0;
 
     begin
-        if (reset = '0') then
+        --if (reset = '0') then
 
-            ipixel <= x"0000";
+            --ipixel <= x"000000";
 
-        elsif (clk'EVENT and clk = '1') then
+        --elsif (clk'EVENT and clk = '1') then
             case current_state is
 
                 when s_ram_init =>
-                    ipixel <= x"FFFF";
+                    ipixel <= x"FFFFFF";
 
                 when s_ram_idle =>
                     pic_x := to_integer(unsigned(Hcnt(9 downto 0)));
                     pic_y := to_integer(unsigned(Vcnt(9 downto 0)));
                     bf_y  := to_integer(unsigned(buf_y(9 downto 0)));
 
-                    --arr_y := (pic_y-bf_y);
-                    arr_y := (bf_y-pic_y);
-                    if arr_y = 0 then
-                        ipixel <= "0000" & pic_buf7(pic_x);
+						arr_y := (bf_y-pic_y);
+						
+                 if arr_y = 0 then
+                        ipixel <= pic_buf7(pic_x)&x"00";
                     elsif arr_y = 1 then
-                        ipixel <= "0000" & pic_buf6(pic_x);
+                        ipixel <= pic_buf6(pic_x)&x"00";
                     elsif arr_y = 2 then
-                        ipixel <= "0000" & pic_buf5(pic_x);
+                        ipixel <= pic_buf5(pic_x)&x"00";
                     elsif arr_y = 3 then
-                        ipixel <= "0000" & pic_buf4(pic_x);
+                        ipixel <= pic_buf4(pic_x)&x"00";
                     elsif arr_y = 4 then
-                        ipixel <= "0000" & pic_buf3(pic_x);
+                        ipixel <= pic_buf3(pic_x)&x"00";
                     elsif arr_y = 5 then
-                        ipixel <= "0000" & pic_buf2(pic_x);
+                        ipixel <= pic_buf2(pic_x)&x"00";
                     elsif arr_y = 6 then
-                        ipixel <= "0000" & pic_buf1(pic_x);
+                        ipixel <= pic_buf1(pic_x)&x"00";
                     else
-                        ipixel <= "0000" & pic_buf0(pic_x);
+                        ipixel <= pic_buf0(pic_x)&x"00";
                     end if;
+
 
                 when s_ram_rd =>
                     pic_x := to_integer(unsigned(Hcnt(10 downto 0)));
@@ -753,28 +755,27 @@ begin
                     arr_y := (bf_y-pic_y);
                     
                     if arr_y = 0 then
-                        ipixel <= "0000" & pic_buf7(pic_x);
+                        ipixel <= pic_buf7(pic_x)&x"00";
                     elsif arr_y = 1 then
-                        ipixel <= "0000" & pic_buf6(pic_x);
+                        ipixel <= pic_buf6(pic_x)&x"00";
                     elsif arr_y = 2 then
-                        ipixel <= "0000" & pic_buf5(pic_x);
+                        ipixel <= pic_buf5(pic_x)&x"00";
                     elsif arr_y = 3 then
-                        ipixel <= "0000" & pic_buf4(pic_x);
+                        ipixel <= pic_buf4(pic_x)&x"00";
                     elsif arr_y = 4 then
-                        ipixel <= "0000" & pic_buf3(pic_x);
+                        ipixel <= pic_buf3(pic_x)&x"00";
                     elsif arr_y = 5 then
-                        ipixel <= "0000" & pic_buf2(pic_x);
+                        ipixel <= pic_buf2(pic_x)&x"00";
                     elsif arr_y = 6 then
-                        ipixel <= "0000" & pic_buf1(pic_x);
+                        ipixel <= pic_buf1(pic_x)&x"00";
                     else
-                        ipixel <= "0000" & pic_buf0(pic_x);
+                        ipixel <= pic_buf0(pic_x)&x"00";
                     end if;
-
 
                 when others =>
                     null;
             end case;
-        end if;
+        --end if;
 
         pixel <= ipixel;
 

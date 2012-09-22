@@ -5,9 +5,9 @@ use IEEE.NUMERIC_STD.all;
 ENTITY VGA IS
 	PORT(
 		clk, reset:							IN STD_LOGIC;
-		pixel:								IN STD_LOGIC_VECTOR(15 downto 0);
+		pixel:								IN STD_LOGIC_VECTOR(23 downto 0);
 		
-		red_out, green_out, blue_out: OUT STD_LOGIC_VECTOR(3 downto 0);
+		red_out, green_out, blue_out: OUT STD_LOGIC_VECTOR(7 downto 0);
 		hsync, vsync:						OUT STD_LOGIC;
 		Vcnt:									OUT STD_LOGIC_VECTOR(9 downto 0);
 		Hcnt:									OUT STD_LOGIC_VECTOR(10 downto 0)
@@ -24,13 +24,13 @@ BEGIN
 	
 		VARIABLE hcount:	integer range 0 to 2047 := 0;
 		VARIABLE vcount:	integer range 0 to 1023 := 0;
-		VARIABLE red, green, blue: integer range 0 to 15 := 0;
+		VARIABLE red, green, blue: integer range 0 to 255 := 0;
 	
 		BEGIN
 			IF reset = '0' THEN
-				red_out<="0000";
-				green_out<="0000";
-				blue_out<="0000";
+				red_out<=x"00";
+				green_out<=x"00";
+				blue_out<=x"00";
 				hsync<='0';
 				vsync<='0';
 				Vcnt<="0000000000";
@@ -46,9 +46,9 @@ BEGIN
 			ELSIF clk'EVENT AND clk='1' THEN
 				
 				IF hcount<800 THEN
-					red := to_integer(unsigned(pixel(11 downto 8)));
-					green:= to_integer(unsigned(pixel(7 downto 4)));
-					blue:= to_integer(unsigned(pixel(3 downto 0)));
+					red := to_integer(unsigned(pixel(23 downto 16)));
+					green:= to_integer(unsigned(pixel(15 downto 8)));
+					blue:= to_integer(unsigned(pixel(7 downto 0)));
 					intHsync <= '0';
 				ELSIF hcount>799 AND hcount<856 THEN 
 					red := 0;
