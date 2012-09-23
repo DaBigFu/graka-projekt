@@ -45,22 +45,22 @@ BEGIN
 				
 			ELSIF clk'EVENT AND clk='1' THEN
 				
-				IF hcount<800 THEN
+				IF hcount<1024 THEN
 					red := to_integer(unsigned(pixel(23 downto 16)));
 					green:= to_integer(unsigned(pixel(15 downto 8)));
 					blue:= to_integer(unsigned(pixel(7 downto 0)));
 					intHsync <= '0';
-				ELSIF hcount>799 AND hcount<856 THEN 
+				ELSIF hcount>1023 AND hcount<1048 THEN 
 					red := 0;
 					green:= 0;
 					blue:= 0;
 					intHsync <= '0';
-				ELSIF hcount>855 AND hcount<976 THEN 
+				ELSIF hcount>1047 AND hcount<1184 THEN 
 					red := 0;
 					green:= 0;
 					blue:= 0;
 					intHsync <= '1';
-				ELSIF hcount>975 THEN
+				ELSIF hcount>1183 THEN
 					red := 0;
 					green:= 0;
 					blue:= 0;
@@ -70,31 +70,31 @@ BEGIN
 				hcount:=hcount+1;
 				
 				--neue Zeile
-				IF hcount>1039 THEN
+				IF hcount>1343 THEN
 					hcount:=0;
 					vcount:=vcount+1;
 				END IF;
 				
-				IF vcount<600 THEN
+				IF vcount<768 THEN
 					intVsync<='0';
-				ELSIF vcount>599 AND vcount<637 THEN
+				ELSIF vcount>767 AND vcount<771 THEN
 					red := 0;
 					green:= 0;
 					blue:= 0;
 					intVsync<='0';
-				ELSIF vcount>636 AND vcount<643 THEN
+				ELSIF vcount>770 AND vcount<777 THEN
 					red := 0;
 					green:= 0;
 					blue:= 0;
 					intVsync<='1';
-				ELSIF vcount>642 THEN
+				ELSIF vcount>776 THEN
 					red := 0;
 					green:= 0;
 					blue:= 0;
 					intVsync<='0';
 				END IF;
 				
-				IF vcount>665 THEN
+				IF vcount>805 THEN
 					vcount:=0;
 				END IF;
 			END IF;

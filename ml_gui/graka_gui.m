@@ -293,9 +293,9 @@ switch handles.bit_depth
         handles.ser.write_uint8(2);
         handles.ser.write_array(file_array,512,1875);
     case 24
-        file_array = fread(file_in, [768 1875], 'uint8', 'ieee-be');
+        file_array = fread(file_in, [768 3072], 'uint8', 'ieee-be');
         handles.ser.write_uint8(2);
-        handles.ser.write_array(file_array,768,1875);
+        handles.ser.write_array(file_array,768,3072);
     otherwise
         disp('error in bit depth selection');
 end
