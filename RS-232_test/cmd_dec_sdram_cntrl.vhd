@@ -15,7 +15,7 @@ entity cmd_dec_sdram_cntrl is
         DRAM_ADDR                  : out STD_LOGIC_VECTOR(12 downto 0);
         BA, DQM                    : out STD_LOGIC_VECTOR(1 downto 0);
         nWE, nCAS, nRAS, nCS, nCKE : out STD_LOGIC;
-        pixel                      : out STD_LOGIC_VECTOR(15 downto 0);
+        pixel                      : out STD_LOGIC_VECTOR(23 downto 0);
 
         data_in  : in std_logic_vector(7 downto 0);
         data_out : out std_logic_vector(7 downto 0);
@@ -45,15 +45,15 @@ architecture beh of cmd_dec_sdram_cntrl is
     signal   iBA, iDQM             : STD_LOGIC_VECTOR(1 downto 0) := "00";
     signal   iWE, iCAS, iRAS, iCKE : STD_LOGIC := '0';
     signal   iCS                   : STD_LOGIC := '1';
-    signal   ipixel                : STD_LOGIC_VECTOR(15 downto 0) := x"0000";
+    signal   ipixel                : STD_LOGIC_VECTOR(23 downto 0) := x"000000";
 
     -- Buffer fuer 8 Zeilen des anzuzeigenden Bildes
-    type pic_array is array (0 to 799) of std_logic_vector(11 downto 0);
-    signal pic_buf0, pic_buf1, pic_buf2, pic_buf3, pic_buf4, pic_buf5, pic_buf6, pic_buf7 : pic_array ;
+    type pic_array is array (integer range 0 to 255) of std_logic_vector(15 downto 0);
+    signal pic_buf0, pic_buf1, pic_buf2, pic_buf3 : pic_array := (others => x"0000") ;
 
     --iterne Signale fuer Kommunikation zwischen den Prozessen
     signal  initialized, rd_done, rd_req, wr_done, refreshed : STD_LOGIC := '0';
-    signal buf_y                                             : STD_LOGIC_VECTOR(9 downto 0) := "0000000111"; --speichert global die Nummer der letzten gepufferten Bildzeile
+    signal buf_y                                             : STD_LOGIC_VECTOR(9 downto 0) := "0000000000"; --speichert global die Nummer der letzten gepufferten Bildzeile
     signal  rx_busy_last                                     : std_logic := '0';
     signal pic_received                                      : STD_LOGIC := '0';
     signal rx_cmd                                            : t_rx_com := unidentified;
@@ -62,14 +62,14 @@ architecture beh of cmd_dec_sdram_cntrl is
     signal page_received : STD_LOGIC := '0';
 
     -- temporaere signale
-    signal farbelinks  : STD_LOGIC_VECTOR(11 downto 0) := x"FF0";
-    signal farberechts : std_logic_vector(11 downto 0) := x"0FF";
-    --attribute ramstyle        : string;
-    --attribute ramstyle of beh : architecture is "M9K";
+    
+	 
+    attribute ramstyle        : string;
+    attribute ramstyle of beh : architecture is "M9K";
 
      --buffers counters etc fÃƒÂ¼r bildempfang
     signal rec_buff     : t_rec_buff := (others => x"000000");
-    signal page_counter : INTEGER range 0 to 1875 := 0;
+    signal page_counter : INTEGER range 0 to 3072 := 0;
     signal pixel_counter : INTEGER range 0 to 256 := 0;
     signal byte_toggle  : STD_LOGIC_VECTOR(1 downto 0) := "00";
 
@@ -171,6 +171,7 @@ begin
             when s_ram_init =>
                 if initialized = '1' then
                     next_state <= s_wait_for_com;
+						  --next_state<=s_ram_idle;
                 else
                     next_state <= s_ram_init;
                 end if;
@@ -204,18 +205,15 @@ begin
         variable cnt1              : integer range 0 to 36000 := 0;
         variable cnt2              : integer range 0 to 15 := 0;
         variable init              : integer range 0 to 15 := 0;
-        variable pic_y             : integer range 0 to 1023 := 0;
         variable pic_x             : integer range 0 to 2047 := 0;
-        variable bf_y              : integer range 0 to 1023 := 7; --speichert letzten Zeile des picture arrays zum Vergleich mit VGA-Modul
+        variable bf_y              : integer range 0 to 524287 := 0; --speichert letzten Zeile des picture arrays zum Vergleich mit VGA-Modul
         variable rd_cnt            : integer range 0 to 31 := 0;
-        variable row               : integer range 0 to 2047 := 25;
+        variable row               : integer range 0 to 4095 := 4;
         variable rd                : integer range 0 to 15 := 0;
-        variable array_x           : integer range 0 to 1023 := 0;
-        variable array_y           : integer range 0 to 7 := 0;
         variable cnt3              : integer range 0 to 511 := 0;
         variable dbg_cyc_count_int : integer := 0;
         variable wr                : integer range 0 to 15 := 0;
-        variable page_to_write     : integer range 0 to 2047 := 0;
+        variable page_to_write     : integer range 0 to 4095 := 0;
         variable refresh           : integer range 0 to 15 := 2;
         variable refresh_cnt       : integer range 0 to 8191 := 0;
 		  variable dbg_refresh_int : integer range 0 to 65000 := 0;
@@ -235,7 +233,7 @@ begin
             iRAS  <= '0';
             iCKE  <= '0';
             iCS   <= '1';
-            buf_y <= "0000000111";
+            buf_y <= "0000000000";
 				byte_toggle<= "00";
 
             initialized  <= '0';
@@ -244,8 +242,6 @@ begin
             rx_busy_last <= '0';
             rx_cmd       <= unidentified;
             pic_received <= '0';
-            farbelinks   <= x"000";
-            farberechts  <= x"000";
             refreshed    <= '0';
 
             pixel_counter <= 0;
@@ -255,14 +251,11 @@ begin
             cnt1          := 0;
             cnt2          := 0;
             init          := 0;
-            pic_y         := 0;
             pic_x         := 0;
-            bf_y          := 7; --speichert letzten Zeile des picture arrays zum Vergleich mit VGA-Modul
+            bf_y          := 0; --speichert letzten Zeile des picture arrays zum Vergleich mit VGA-Modul
             rd_cnt        := 0;
-            row           := 25;
+            row           := 0;
             rd            := 0;
-            array_x       := 0;
-            array_y       := 0;
             cnt3          := 0;
             wr            := 0;
             page_to_write := 0;
@@ -271,6 +264,9 @@ begin
                 --received_pic_counter := 0;
 
         elsif (clk'EVENT and clk = '1') then
+				
+				 
+				 
             case current_state is
 
                 ---------------------------------------------------------------------------------------
@@ -318,7 +314,7 @@ begin
                         page_counter  <= page_counter + 1;
                         page_received <= '1';
 
-                    elsif page_counter = 1875 then --1875
+                    elsif page_counter = 3072 then --1875
                                     --done
                         pixel_counter <= 0;
                         byte_toggle  <= "00";
@@ -362,19 +358,17 @@ begin
 
                     elsif wr = 1 then       --tRCD
                         iCS <= '1';
-                        dbg_refresh_int := dbg_refresh_int+1;
-                        if cnt2 < 1 then
+                        if cnt2 < 2 then
                             cnt2 := cnt2+1;
                         else
-                            dbg_refresh_cyc <= std_logic_vector(to_unsigned(dbg_refresh_int, 16));
-                            dbg_refresh_int := 0;
+                           
                             cnt2 := 0;
                             wr   := wr+1;
                         end if;
 
                     elsif wr = 2 then       --write
                         iADDR   <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-                        DRAM_DQ <= "0000" & rec_buff(cnt3);
+                        DRAM_DQ <= rec_buff(cnt3)(23 downto 8);
                         --DRAM_DQ <= x"0F00";
                         cnt3 := cnt3+1;
                         wr   := wr+1;
@@ -384,7 +378,7 @@ begin
                     elsif wr = 3 then       --write die restlichen 255 words
                         iCS <= '1';
                         if cnt3 < 256 then
-                            DRAM_DQ <= "0000" & rec_buff(cnt3);
+                            DRAM_DQ <= rec_buff(cnt3)(23 downto 8);
                             --DRAM_DQ <= std_logic_vector(to_unsigned(cnt3, DRAM_DQ'length));
                             
                             cnt3 := cnt3+1;
@@ -409,7 +403,7 @@ begin
 
                     elsif wr = 6 then       --tRP
                         iCS <= '1';
-                        if cnt2 < 1 then
+                        if cnt2 < 2 then
                             cnt2 := cnt2+1;
                         else
                             page_to_write := page_to_write +1;
@@ -438,7 +432,7 @@ begin
                     elsif refresh = 1 then
                         iCS <= '1';
                         
-                        if cnt2 < 1 then
+                        if cnt2 < 2 then
                             cnt2 := cnt2+1;
                         else
                             refresh := refresh+1;
@@ -452,7 +446,7 @@ begin
                     elsif refresh =3 then --tARFC
                         iCS <= '1';
 								
-								if cnt2 < 6 then
+								if cnt2 < 9 then
                             cnt2 := cnt2+1;
                         else
                             refresh := refresh+1;
@@ -484,7 +478,7 @@ begin
 
                     if init = 0 then          --power-up
                         iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '1'; iRAS <= '0'; iCAS <= '0'; iWE <= '0';
-                        if cnt1 < 20000 then  --200us delay
+                        if cnt1 < 33200 then  --200us delay
                             cnt1 := cnt1+1;
                         else
                             cnt1 := 0;
@@ -497,7 +491,7 @@ begin
 
                     elsif init = 2 then         --tRP
                         iCS <= '1';
-                        if cnt2 < 1 then
+                        if cnt2 < 2 then
                             cnt2 := cnt2+1;
                         else
                             init := init+1;
@@ -510,7 +504,7 @@ begin
 
                     elsif init = 4 then         --tARFC1
                         iCS <= '1';
-                        if cnt2 < 5 then
+                        if cnt2 < 9 then
                             cnt2 := cnt2+1;
                         else
                             cnt2 := 0;
@@ -523,7 +517,7 @@ begin
 
                     elsif init = 6 then         --tARFC2
                         iCS <= '1';
-                        if cnt2 < 5 then
+                        if cnt2 < 9 then
                             cnt2 := cnt2+1;
                         else
                             cnt2 := 0;
@@ -560,27 +554,25 @@ begin
                 when s_ram_idle =>
                     rd_done <= '0';
                     iADDR   <= "1111111111111"; iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '1'; iRAS <= '1'; iCAS <= '1'; iWE <= '1'; --alles auf High, kein Befehl ausfuehren
-
-                    pic_x := to_integer(unsigned(Hcnt(10 downto 0)));
-                    pic_y := to_integer(unsigned(Vcnt(9 downto 0)));
-                    bf_y  := to_integer(unsigned(buf_y(9 downto 0)));
-
-                    if pic_x = 760 and bf_y = (pic_y+3) then          --nach 4900 pixel, oder 98us - also 4 Zeilen und 740 pixel
+			
+						  pic_x:=to_integer(unsigned(Hcnt));
+			  
+                    if pic_x = 910 and Vcnt=buf_y then          
                         rd_req <= '1';
                     end if;
 
 
                 ---------------------------------------------------------------------------------------------------------------------------------------------------
-                -- rd 8 y-lines ---------------------------------------------------------------------------------------------------------------------------------
-                -- fuehrt 25 full page rds durch, um 8 Zeilen des displays zu puffern ---------------------------------------------------------------------------
+                -- rd 1 y-line ------------------------------------------------------------------------------------------------------------------------------------
+                -- fuehrt 4 full page rds durch, um eine Zeile des displays zu puffern ----------------------------------------------------------------------------
                 --------------------------------------------------------------------------------------------------------------------------------------------------- 
                 when s_ram_rd =>
                     rd_req  <= '0';
                     DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
-                    bf_y := to_integer(unsigned(buf_y(9 downto 0)));
+						  
+						  dbg_refresh_int:=dbg_refresh_int+1;
 
-
-                    if rd_cnt < 25 then           --fuehrt 25 full page rds durch
+                    if rd_cnt < 4 then           --fuehrt 4 full page rds durch
                         if rd = 0 then              --Bank Active (ACT) + row auf adresspin
                             iADDR <= std_logic_vector(to_unsigned(row, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             --iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
@@ -588,7 +580,7 @@ begin
 
                         elsif rd = 1 then           --tRCD
                             iCS <= '1';
-                            if cnt2 < 1 then
+                            if cnt2 < 2 then
                                 cnt2 := cnt2+1;
                             else
                                 cnt2 := 0;
@@ -611,30 +603,21 @@ begin
 
                         elsif rd = 4 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
                             if cnt3 < 256 then
-                                if array_y = 0 then
-                                    pic_buf0(array_x) <= DRAM_DQ(11 downto 0);
-                                elsif array_y = 1 then
-                                    pic_buf1(array_x) <= DRAM_DQ(11 downto 0);
-                                elsif array_y = 2 then
-                                    pic_buf2(array_x) <= DRAM_DQ(11 downto 0);
-                                elsif array_y = 3 then
-                                    pic_buf3(array_x) <= DRAM_DQ(11 downto 0);
-                                elsif array_y = 4 then
-                                    pic_buf4(array_x) <= DRAM_DQ(11 downto 0);
-                                elsif array_y = 5 then
-                                    pic_buf5(array_x) <= DRAM_DQ(11 downto 0);
-                                elsif array_y = 6 then
-                                    pic_buf6(array_x) <= DRAM_DQ(11 downto 0);
-                                else
-                                    pic_buf7(array_x) <= DRAM_DQ(11 downto 0);
-                                end if;
-
-                                array_x := array_x+1;
-                                if array_x > 799 then --ich bin awesome
-                                    array_x := 0;
-                                    array_y := array_y+1;
-                                end if;
-                                cnt3 := cnt3+1;
+                                
+											if rd_cnt=0 then
+												pic_buf0(cnt3)<=DRAM_DQ;
+											elsif rd_cnt=1 then
+												pic_buf1(cnt3)<=DRAM_DQ;
+											ELSIF rd_cnt = 2 then	
+												pic_buf2(cnt3)<=DRAM_DQ;
+											ELSIF rd_cnt = 3 then	
+												pic_buf3(cnt3)<=DRAM_DQ;
+											end if;
+											
+                              
+										
+											
+											cnt3 := cnt3+1;
                             else
                                 
                                 rd   := rd+1;
@@ -648,12 +631,12 @@ begin
 
                         elsif rd = 6 then         --trp
                             iCS <= '1';
-                            if cnt2 < 1 then
+                            if cnt2 < 2 then
                                 cnt2 := cnt2+1;
                             else
                                 rd_cnt := rd_cnt+1;
                                 row    := row+1;
-                                if row > 1874 then
+                                if row > 3071 then
                                     row := 0;
                                 end if;
                                 rd   := 0;
@@ -664,20 +647,19 @@ begin
                         end if;
 
                     else
-                        array_x := 0;
-                        array_y := 0;
-
-
-                        bf_y := bf_y+8;            --nach 25 rds ist die naechste Startzeile 8 Zeilen weiter
-                        if bf_y > 599 then         --falls ausserhalb des darstellbaren Bereichs, fangen wir wieder bi 7 an
-                            bf_y := 7;
-                        end if;
-
-                        buf_y <= std_logic_vector(to_unsigned(bf_y, buf_y'length)); --wird weiter an globalen Speicher gegeben
-
+                        
+								bf_y:=bf_y+1;
+								if bf_y>767 then
+									bf_y:=0;
+								end if;
+								buf_y<=std_LOGIC_VECTOR(to_unsigned(bf_y, buf_y'length));
+								
+								dbg_refresh_cyc <= std_LOGIC_VECTOR(to_unsigned(dbg_refresh_int, 16));
+								dbg_refresh_int:=0;
 
                         rd_cnt := 0;
                         rd_done <= '1';                                             --wieder in den Zustand s_ram_idle versetzen
+								
                     end if;
 
 
@@ -701,75 +683,52 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    VGA_out : process (clk, reset, current_state,ipixel)
+    VGA_out : process (clk, reset, current_state, ipixel, Hcnt, Vcnt, buf_y, pic_buf0, pic_buf1, pic_buf2, pic_buf3)
 
-        variable pic_y : integer range 0 to 1023 := 0;
-        variable pic_x : integer range 0 to 1023 := 0;
-        variable bf_y  : integer range 0 to 1023 := 7;
-        variable arr_y : integer range 0 to 7 := 0;
+        variable pic_x : integer range 0 to 2045 := 0;
 
     begin
         if (reset = '0') then
 
-            ipixel <= x"0000";
+            ipixel <= x"000000";
 
         elsif (clk'EVENT and clk = '1') then
             case current_state is
 
                 when s_ram_init =>
-                    ipixel <= x"FFFF";
+                    ipixel <= x"FFFFFF";
 
                 when s_ram_idle =>
-                    pic_x := to_integer(unsigned(Hcnt(9 downto 0)));
-                    pic_y := to_integer(unsigned(Vcnt(9 downto 0)));
-                    bf_y  := to_integer(unsigned(buf_y(9 downto 0)));
+                    
+						  pic_x := to_integer(unsigned(Hcnt(10 downto 0)));
 
-                    --arr_y := (pic_y-bf_y);
-                    arr_y := (bf_y-pic_y);
-                    if arr_y = 0 then
-                        ipixel <= "0000" & pic_buf7(pic_x);
-                    elsif arr_y = 1 then
-                        ipixel <= "0000" & pic_buf6(pic_x);
-                    elsif arr_y = 2 then
-                        ipixel <= "0000" & pic_buf5(pic_x);
-                    elsif arr_y = 3 then
-                        ipixel <= "0000" & pic_buf4(pic_x);
-                    elsif arr_y = 4 then
-                        ipixel <= "0000" & pic_buf3(pic_x);
-                    elsif arr_y = 5 then
-                        ipixel <= "0000" & pic_buf2(pic_x);
-                    elsif arr_y = 6 then
-                        ipixel <= "0000" & pic_buf1(pic_x);
-                    else
-                        ipixel <= "0000" & pic_buf0(pic_x);
-                    end if;
+					
+							if pic_x<256 then
+								ipixel<=pic_buf0(pic_x)&x"00";
+							elsif pic_x>255 and pic_x<512 then
+								ipixel<=pic_buf1(pic_x-256)& x"00";
+						   elsif pic_x>511 and pic_x<758 then
+								ipixel<=pic_buf2(pic_x-512)& x"00";
+							else
+								ipixel<=pic_buf3(pic_x-768)& x"00";
+							end if;
+					
+                    
+
 
                 when s_ram_rd =>
                     pic_x := to_integer(unsigned(Hcnt(10 downto 0)));
-                    pic_y := to_integer(unsigned(Vcnt(9 downto 0)));
-                    bf_y  := to_integer(unsigned(buf_y(9 downto 0)));
-
-                    --arr_y := (pic_y-bf_y);
-                    arr_y := (bf_y-pic_y);
-                    
-                    if arr_y = 0 then
-                        ipixel <= "0000" & pic_buf7(pic_x);
-                    elsif arr_y = 1 then
-                        ipixel <= "0000" & pic_buf6(pic_x);
-                    elsif arr_y = 2 then
-                        ipixel <= "0000" & pic_buf5(pic_x);
-                    elsif arr_y = 3 then
-                        ipixel <= "0000" & pic_buf4(pic_x);
-                    elsif arr_y = 4 then
-                        ipixel <= "0000" & pic_buf3(pic_x);
-                    elsif arr_y = 5 then
-                        ipixel <= "0000" & pic_buf2(pic_x);
-                    elsif arr_y = 6 then
-                        ipixel <= "0000" & pic_buf1(pic_x);
-                    else
-                        ipixel <= "0000" & pic_buf0(pic_x);
-                    end if;
-
+							
+							if pic_x<256 then
+								ipixel<=pic_buf0(pic_x)&x"00";
+							elsif pic_x>255 and pic_x<512 then
+								ipixel<=pic_buf1(pic_x-256)&x"00";
+						   elsif pic_x>511 and pic_x<758 then
+								ipixel<=pic_buf2(pic_x-512)&x"00";
+							else
+								ipixel<=pic_buf3(pic_x-768)&x"00";
+							end if;
+						
 
                 when others =>
                     null;

@@ -131,8 +131,8 @@ applicable agreement for further details.
 	(port
 		(pt 304 176)
 		(output)
-		(text "pixel[15..0]" (rect 0 0 84 12)(font "Arial" ))
-		(text "pixel[15..0]" (rect 199 171 283 183)(font "Arial" ))
+		(text "pixel[23..0]" (rect 0 0 84 12)(font "Arial" ))
+		(text "pixel[23..0]" (rect 199 171 283 183)(font "Arial" ))
 		(line (pt 304 176)(pt 288 176)(line_width 3))
 	)
 	(port
