@@ -707,7 +707,7 @@ begin
 								ipixel<=pic_buf0(pic_x)&x"00";
 							elsif pic_x>255 and pic_x<512 then
 								ipixel<=pic_buf1(pic_x-256)& x"00";
-						   elsif pic_x>511 and pic_x<758 then
+						   elsif pic_x>511 and pic_x<768 then
 								ipixel<=pic_buf2(pic_x-512)& x"00";
 							else
 								ipixel<=pic_buf3(pic_x-768)& x"00";
@@ -723,7 +723,7 @@ begin
 								ipixel<=pic_buf0(pic_x)&x"00";
 							elsif pic_x>255 and pic_x<512 then
 								ipixel<=pic_buf1(pic_x-256)&x"00";
-						   elsif pic_x>511 and pic_x<758 then
+						   elsif pic_x>511 and pic_x<768 then
 								ipixel<=pic_buf2(pic_x-512)&x"00";
 							else
 								ipixel<=pic_buf3(pic_x-768)&x"00";
