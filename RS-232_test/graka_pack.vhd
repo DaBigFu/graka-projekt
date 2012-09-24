@@ -15,7 +15,8 @@ constant c_COM_LENGTH : integer range 0 to 16 := 8;
 type t_rx_com is (rec_pic, end_pic, check_com, unidentified);
 type t_tx_com is (board_ack, end_of_block, unidentified);
 type t_command_array is ARRAY(0 to 2) of std_logic_vector(c_COM_LENGTH-1 downto 0);
-type t_rec_buff is ARRAY(0 to 255) of std_logic_vector(23 downto 0);
+type t_rec_buff_rg is ARRAY(0 to 255) of std_logic_vector(15 downto 0);
+type t_rec_buff_b is ARRAY(0 to 255) of std_logic_vector(7 downto 0);
 
 --###########################################################################
 --constants
