@@ -5,7 +5,10 @@ reshaped = reshape(array_in, 768 , 4 ,768);
 for i = 1:1:768
  reshaped(:,:,i) = rot90(reshaped(:,:,i),2);
 end
-array_out = reshape(reshaped,768,3072);
-
+reshaped = reshape(reshaped,768,3072);
+colors_flipped = reshaped;
+colors_flipped(1:3:768,:) = reshaped(3:3:768,:);
+colors_flipped(3:3:768,:) = reshaped(1:3:768,:);
+array_out = colors_flipped;
 end
 
