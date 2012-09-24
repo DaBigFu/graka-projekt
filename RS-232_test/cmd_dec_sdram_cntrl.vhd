@@ -120,7 +120,9 @@ begin
                     next_state <= s_transmit_response;
                 elsif rx_busy = '0' and rx_cmd = rec_pic then
                     next_state <= s_receive_pic;
-                else
+                elsif rd_req = '1' then
+                    next_state <= s_ram_rd;
+					 else
                     next_state <= s_wait_for_com;
                 end if;
 
@@ -132,7 +134,7 @@ begin
                 if tx_busy = '1' then
                     next_state <= s_wait_for_tx;
 					 elsif tx_busy = '0' and pic_received = '1' then
-						  next_state <= s_ram_idle;
+						  next_state <= s_wait_for_com;
                 elsif tx_busy = '0' and page_counter > 0 then
                     next_state <= s_receive_pic;
                 else
@@ -186,7 +188,7 @@ begin
 
             when s_ram_rd =>
                 if rd_done = '1' then
-                    next_state <= s_ram_idle;
+                    next_state <= s_wait_for_com;
                 else
                     next_state <= s_ram_rd;
                 end if;
@@ -290,6 +292,16 @@ begin
                         else
                             tx_cmd <= unidentified;
                         end if;
+                    end if;
+						  
+						  --previous s_sram_idle
+						  rd_done <= '0';
+                    iADDR   <= "1111111111111"; iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '1'; iRAS <= '1'; iCAS <= '1'; iWE <= '1'; --alles auf High, kein Befehl ausfuehren
+			
+						  pic_x:=to_integer(unsigned(Hcnt));
+			  
+                    if pic_x = 455 and Vcnt=buf_y then          
+                        rd_req <= '1';
                     end if;
 
                 when s_transmit_response =>
@@ -825,7 +837,7 @@ begin
                 when s_ram_init =>
                     ipixel <= x"FFFFFF";
 
-                when s_ram_idle =>
+                when s_wait_for_com =>
                     
 						  pic_x := to_integer(unsigned(Hcnt(10 downto 0)));
 
@@ -838,9 +850,7 @@ begin
 								ipixel<=rg_buf2(pic_x-512)&b_buf2(pic_x-512);
 							else
 								ipixel<=rg_buf3(pic_x-768)&b_buf3(pic_x-768);
-							end if;
-					
-                    
+							end if;		                    
 
 
                 when s_ram_rd =>
