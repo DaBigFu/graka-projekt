@@ -329,7 +329,7 @@ begin
 
                         inner_if : if byte_toggle = "00" then
                                     --write upper 4 bit
-                            rec_buff_rg(pixel_counter)(15 downto 8) <= data_in;
+                            rec_buff_b(pixel_counter) <= data_in;
                             byte_toggle                         <= "01";
 
                         elsif byte_toggle = "01" then
@@ -338,7 +338,7 @@ begin
                             byte_toggle                        <= "10";
                                                         
                         elsif byte_toggle = "10" then
-                            rec_buff_b(pixel_counter) <= data_in;
+                            rec_buff_rg(pixel_counter)(15 downto 8) <= data_in;
                             byte_toggle                        <= "00";                            
                             pixel_counter <= pixel_counter + 1;
 
