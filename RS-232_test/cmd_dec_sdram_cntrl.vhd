@@ -34,7 +34,7 @@ end entity cmd_dec_sdram_cntrl;
 architecture beh of cmd_dec_sdram_cntrl is
 
     -- interne States
-    type states is (s_ram_init, s_ram_idle, s_ram_rd, s_ram_fullpagewrite, s_ram_refresh, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic);
+    type states is (s_ram_init, s_ram_rd, s_ram_fullpagewrite, s_ram_refresh, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic);
     signal current_state, next_state : states;
 
      --interne Signale fuer Ausgangspins
@@ -86,7 +86,6 @@ begin
         x"4" when s_transmit_response,
         x"5" when s_wait_for_tx,
         x"6" when s_ram_refresh,
-        x"7" when s_ram_idle,
         x"8" when s_ram_rd,
         x"F" when others;
 
@@ -177,13 +176,6 @@ begin
 						  --next_state<=s_ram_idle;
                 else
                     next_state <= s_ram_init;
-                end if;
-
-            when s_ram_idle =>
-                if  rd_req = '1' then
-                    next_state <= s_ram_rd;
-                else
-                    next_state <= s_ram_idle;
                 end if;
 
             when s_ram_rd =>
@@ -612,22 +604,6 @@ begin
                     else
                         init := 0;
 
-                    end if;
-
-
-
-                ---------------------------------------------------------------------------------------------------------------------------------------------------
-                -- Idle -------------------------------------------------------------------------------------------------------------------------------------------
-                -- Wartet darauf, dass das VGA-Modul anfaengt die letzte gepufferte Zeile zu lesen und wechselt dann in den Zustand s_ram_rd ----------------------
-                --------------------------------------------------------------------------------------------------------------------------------------------------- 
-                when s_ram_idle =>
-                    rd_done <= '0';
-                    iADDR   <= "1111111111111"; iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '1'; iRAS <= '1'; iCAS <= '1'; iWE <= '1'; --alles auf High, kein Befehl ausfuehren
-			
-						  pic_x:=to_integer(unsigned(Hcnt));
-			  
-                    if pic_x = 455 and Vcnt=buf_y then          
-                        rd_req <= '1';
                     end if;
 
 
