@@ -22,7 +22,7 @@ function varargout = graka_gui(varargin)
 
 % Edit the above text to modify the response to help graka_gui
 
-% Last Modified by GUIDE v2.5 21-Sep-2012 13:38:46
+% Last Modified by GUIDE v2.5 24-Sep-2012 17:10:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -350,3 +350,37 @@ set(hObject, 'HandleVisibility', 'off');
 guidata(hObject, handles);
 
 
+
+
+
+function edit_hist_move_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_hist_move (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_hist_move as text
+%        str2double(get(hObject,'String')) returns contents of edit_hist_move as a double
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit_hist_move_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_hist_move (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+guidata(hObject, handles);
+
+% --- Executes on button press in pb_move_hist.
+function pb_move_hist_Callback(hObject, eventdata, handles)
+% hObject    handle to pb_move_hist (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.ser.write_uint8(17);
+handles.ser.write_sint8(str2double(get(handles.edit_hist_move,'String')));
+
+guidata(hObject, handles);

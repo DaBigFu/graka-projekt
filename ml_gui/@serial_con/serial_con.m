@@ -105,6 +105,14 @@ classdef serial_con < handle
             end
         end
         
+        function write_sint8(obj, int_in)
+            if (obj.status == 1)
+                disp('tried to send data via closed port');
+            else
+                fwrite(obj.ser_port,int_in, 'int8');
+            end
+        end
+        
         function write_uint8_fast(obj, int_in)
             fwrite(obj.ser_port,int_in, 'uint8');
         end

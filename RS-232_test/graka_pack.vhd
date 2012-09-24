@@ -12,16 +12,25 @@ constant c_COM_LENGTH : integer range 0 to 16 := 8;
 
 --###########################################################################
 --types
-type t_rx_com is (rec_pic, end_pic, check_com, unidentified);
+type t_rx_com is (rec_pic, end_pic, check_com, filter_move_hist, unidentified);
 type t_tx_com is (board_ack, end_of_block, unidentified);
-type t_command_array is ARRAY(0 to 2) of std_logic_vector(c_COM_LENGTH-1 downto 0);
+type t_command_array is ARRAY(0 to 3) of std_logic_vector(c_COM_LENGTH-1 downto 0);
 type t_rec_buff_rg is ARRAY(0 to 255) of std_logic_vector(15 downto 0);
 type t_rec_buff_b is ARRAY(0 to 255) of std_logic_vector(7 downto 0);
 
+type t_filter_set is record
+		move_hist : unsigned(7 downto 0);
+end record;
+
+
 --###########################################################################
 --constants
-constant c_rx_com_arr : t_command_array := (x"02", x"03",x"05");
-constant c_tx_com_arr : t_command_array := (x"06", x"17", x"00");
+constant c_rx_com_arr : t_command_array := (x"02", x"03",x"05", x"11");
+constant c_tx_com_arr : t_command_array := (x"06", x"17",x"00", x"00");
+
+constant c_filter_set_empty : t_filter_set := (
+	move_hist => (others => '0')
+);
 
 
 --###########################################################################
@@ -48,6 +57,8 @@ function get_rx_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) retu
 				return t_rx_com'VAL(1);
 			when c_rx_com_arr(2) =>
 				return t_rx_com'VAL(2);
+			when c_rx_com_arr(3) =>
+				return t_rx_com'VAL(3);
 			when others =>
 				return t_rx_com'right;
 		end case;
