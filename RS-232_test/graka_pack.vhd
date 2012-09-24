@@ -39,10 +39,26 @@ function get_tx_command(com_in : t_tx_com) return STD_LOGIC_VECTOR;
 
 function get_rx_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) return t_rx_com;
 
+function capped_add(sum1 : unsigned(7 downto 0), sum2 : signed(7 downto 0))) return unsigned;
+
 end package graka_pack;
 
 package body graka_pack is
 
+function capped_add(sum1 : unsigned(7 downto 0), sum2 : signed(7 downto 0))) return unsigned is
+	--adds / subtracts sum2 from unsigned sum1, returns result in 0...255 range.
+	variable erg : sgined(8 downto 0) := (others => '0');
+	begin
+		erg <= signed('0' & sum1) + ( '0' & sum2);
+		if erg > 255 then
+			return to_unsigned(255,8);
+		elsif erg < 0 then
+			return to_unsigned(0,8);
+		else
+			return unsigned(erg(7 downto 0));
+		end if;
+end function capped_add;
+		
 function get_tx_command(com_in : t_tx_com) return STD_LOGIC_VECTOR is
 	begin
 		return c_tx_com_arr(t_tx_com'POS(com_in));
