@@ -35,7 +35,7 @@ end entity cmd_dec_sdram_cntrl;
 architecture beh of cmd_dec_sdram_cntrl is
 
     -- interne States
-    type states is (s_ram_init, s_ram_rd, s_ram_fullpagewrite, s_ram_refresh, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic, s_brightness);
+    type states is (s_ram_init, s_ram_rd, s_ram_fullpagewrite, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic, s_brightness);
     signal current_state, next_state : states;
 
      --interne Signale fuer Ausgangspins
@@ -53,7 +53,7 @@ architecture beh of cmd_dec_sdram_cntrl is
 	 signal b_buf0, b_buf1, b_buf2, b_buf3, b_process: b_array := (others => x"00");
 
     --iterne Signale fuer Kommunikation zwischen den Prozessen
-    signal  initialized, rd_done, rd_req, wr_done, refreshed, brightness : STD_LOGIC := '0';
+    signal  initialized, rd_done, rd_req, wr_done, brightness : STD_LOGIC := '0';
     signal buf_y                                             : STD_LOGIC_VECTOR(9 downto 0) := "0000000000"; --speichert global die Nummer der letzten gepufferten Bildzeile
     signal  rx_busy_last                                     : std_logic := '0';
     signal pic_received                                      : STD_LOGIC := '0';
@@ -86,7 +86,6 @@ begin
         x"3" when s_ram_fullpagewrite,
         x"4" when s_transmit_response,
         x"5" when s_wait_for_tx,
-        x"6" when s_ram_refresh,
         x"8" when s_ram_rd,
         x"F" when others;
 
@@ -106,7 +105,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, wr_done, initialized, refreshed, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received, brightness, dbg_switch)
+    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, wr_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received, brightness, dbg_switch)
     begin
 
         case current_state is
@@ -154,17 +153,9 @@ begin
 
             when s_ram_fullpagewrite =>
                 if wr_done = '1' then
-                    next_state <= s_ram_refresh;
-                else
-                    next_state <= s_ram_fullpagewrite;
-                end if;
-
-
-            when s_ram_refresh =>
-                if refreshed = '1' then
                     next_state <= s_transmit_response;
                 else
-                    next_state <= s_ram_refresh;
+                    next_state <= s_ram_fullpagewrite;
                 end if;
 
 				when s_brightness =>
@@ -217,8 +208,6 @@ begin
         variable dbg_cyc_count_int : integer := 0;
         variable wr                : integer range 0 to 31 := 0;
         variable page_to_write     : integer range 0 to 4095 := 0;
-        variable refresh           : integer range 0 to 15 := 2;
-        variable refresh_cnt       : integer range 0 to 8191 := 0;
 		  variable dbg_refresh_int : integer range 0 to 65000 := 0;
 		  variable brgt_cnt : integer range 0 to 4095 := 0;
 		  variable br : integer range 0 to 31 := 0;
@@ -240,7 +229,7 @@ begin
             iRAS  <= '0';
             iCKE  <= '0';
             iCS   <= '1';
-            buf_y <= "0000000000";
+            buf_y <= "0000000001";
 				byte_toggle<= "00";
 				bank := 0;
 
@@ -250,7 +239,6 @@ begin
             rx_busy_last <= '0';
             rx_cmd       <= unidentified;
             pic_received <= '0';
-            refreshed    <= '0';
 				brightness	 <= '0';
 
             pixel_counter <= 0;
@@ -263,13 +251,15 @@ begin
             pic_x         := 0;
             bf_y          := 0; --speichert letzten Zeile des picture arrays zum Vergleich mit VGA-Modul
             rd_cnt        := 0;
-            row           := 0;
+            row           := 4;
             rd            := 0;
             cnt3          := 0;
             wr            := 0;
             page_to_write := 0;
-            refresh       := 2;
-            refresh_cnt   := 0;
+				bank:=0;
+				brgt_cnt:=0;
+				br:=0;
+				i:=0;
                 --received_pic_counter := 0;
 
         elsif (clk'EVENT and clk = '1') then
@@ -283,6 +273,7 @@ begin
                 -- get this shiat done ----------------------------------------------------------------
                 ---------------------------------------------------------------------------------------
                 when s_wait_for_com =>
+						  wr_done <= '0';
                     pic_received <= '0';
                     data_out     <= x"00";
                     TX_start     <= '0';
@@ -310,7 +301,6 @@ begin
                     end if;
 
                 when s_transmit_response =>
-                    refreshed    <= '0';
                     rx_cmd       <= unidentified;
                     data_out     <= get_tx_command(tx_cmd);
                     TX_start     <= '1';
@@ -321,13 +311,11 @@ begin
                     rx_busy_last <= '0';
 
                 when s_receive_pic =>
-                    dbg_cyc_count_int := dbg_cyc_count_int+1;
-						  
+                    
+						  wr_done <= '0';
 						  
 						  outer_if : if pixel_counter = 256 then
                                     -- page done
-                        dbg_cyc_count <= std_logic_vector(to_unsigned(dbg_cyc_count_int, 28));
-                        dbg_cyc_count_int := 0;
                         pixel_counter  <= 0;
                         byte_toggle   <= "00";
                         page_counter  <= page_counter + 1;
@@ -476,7 +464,7 @@ begin
 
                     elsif wr = 12 then       --tRP
                         iCS <= '1';
-                        if cnt2 < 2 then
+                        if cnt2 < 9 then
                             cnt2 := cnt2+1;
                         else
 									page_to_write := page_to_write +1;
@@ -491,57 +479,6 @@ begin
 
                     end if;
 
-                ---------------------------------------------------------------------------------------------------------------------------------------------------
-                -- RAM - refresh ----------------------------------------------------------------------------------------------------------------------------------
-                -- refresht Bank 0, damit keine Daten verloren gehen ----------------------------------------------------------------------------------------------
-                --------------------------------------------------------------------------------------------------------------------------------------------------- 
-                when s_ram_refresh =>
-                    wr_done <= '0';
-						  
-						  
-                    if refresh = 0 then     --PALL
-                        iADDR <= "0010000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
-                        refresh := refresh+1;
-                         
-                    elsif refresh = 1 then
-                        iCS <= '1';
-                        
-                        if cnt2 < 2 then
-                            cnt2 := cnt2+1;
-                        else
-                            refresh := refresh+1;
-                            cnt2    := 0;
-                        end if;
-
-                    elsif refresh = 2 then   --auto refresh
-                        iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '0'; iWE <= '1';
-                        refresh := refresh+1;
-                        
-                    elsif refresh =3 then --tARFC
-                        iCS <= '1';
-								
-								if cnt2 < 9 then
-                            cnt2 := cnt2+1;
-                        else
-                            refresh := refresh+1;
-                            cnt2    := 0;
-                        end if;
-                        
-                    elsif refresh = 4 then
-                        refresh_cnt := refresh_cnt+1;
-                        if refresh_cnt < 4096 then
-									
-                            refresh := 2;
-                        else
-                            refresh:=2;
-                            refreshed <= '1';
-                            refresh_cnt := 0;
-                           
-                            
-                        end if;
-                    else
-                        refresh := 0;
-                    end if;
 
                 ---------------------------------------------------------------------------------------------------------------------------------------------------
                 -- Initialisierung --------------------------------------------------------------------------------------------------------------------------------
@@ -648,7 +585,7 @@ begin
 
                         elsif rd = 3 then           --CAS latency
                             iCS <= '1';
-                            if cnt2 < 2 then
+                            if cnt2 < 3 then
                                 cnt2 := cnt2+1;
                             else
                                 rd   := rd+1;
@@ -716,7 +653,7 @@ begin
 
                         elsif rd = 10 then           --CAS latency
                             iCS <= '1';
-                            if cnt2 < 2 then
+                            if cnt2 < 3 then
                                 cnt2 := cnt2+1;
                             else
                                 rd   := rd+1;
@@ -815,7 +752,7 @@ begin
 
                         elsif br = 3 then           --CAS latency
                             iCS <= '1';
-                            if cnt2 < 2 then
+                            if cnt2 < 3 then
                                 cnt2 := cnt2+1;
                             else
                                 br   := br+1;
@@ -868,7 +805,7 @@ begin
 
                         elsif br = 10 then           --CAS latency
                             iCS <= '1';
-                            if cnt2 < 2 then
+                            if cnt2 < 3 then
                                 cnt2 := cnt2+1;
                             else
                                 br   := br+1;
