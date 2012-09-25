@@ -19,7 +19,7 @@ type t_rec_buff_rg is ARRAY(0 to 255) of std_logic_vector(15 downto 0);
 type t_rec_buff_b is ARRAY(0 to 255) of std_logic_vector(7 downto 0);
 
 type t_filter_set is record
-		move_hist : unsigned(7 downto 0);
+		move_hist : signed(7 downto 0);
 end record;
 
 
@@ -29,7 +29,7 @@ constant c_rx_com_arr : t_command_array := (x"02", x"03",x"05", x"11");
 constant c_tx_com_arr : t_command_array := (x"06", x"17",x"00", x"00");
 
 constant c_filter_set_empty : t_filter_set := (
-	move_hist => (others => '0')
+	move_hist => x"64"
 );
 
 
@@ -49,7 +49,7 @@ function capped_add(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) retu
 	--adds / subtracts sum2 from unsigned sum1, returns result in 0...255 range.
 	variable erg : signed(8 downto 0) := (others => '0');
 	begin
-		erg := signed('0' & sum1) + ( '0' & sum2);
+		erg := signed('0' & sum1) + sum2;
 		if erg > 255 then
 			return to_unsigned(255,8);
 		elsif erg < 0 then

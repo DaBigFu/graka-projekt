@@ -74,6 +74,8 @@ architecture beh of cmd_dec_sdram_cntrl is
     signal page_counter : INTEGER range 0 to 3072 := 0;
     signal pixel_counter : INTEGER range 0 to 256 := 0;
     signal byte_toggle  : STD_LOGIC_VECTOR(1 downto 0) := "00";
+	 
+	 signal filter_set : t_filter_set := c_filter_set_empty;
 
 begin
 
@@ -842,7 +844,10 @@ begin
 									 
 								elsif br=14 then
 									if i<256 then
-										i := 256;
+										--b_process(i) 					<= std_logic_vector(capped_add(unsigned(b_process(i)), 					filter_set.move_hist));
+										--rg_process(i) 					<= std_logic_vector(capped_add(unsigned(rg_process(i)(15 downto 8)), filter_set.move_hist)) &
+										--										std_logic_vector(capped_add(unsigned(rg_process(i)(7 downto 0)), 	filter_set.move_hist));
+																					
 										--rg_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 16));
 										--b_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 8));
 										i:=i+1;
