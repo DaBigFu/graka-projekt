@@ -68,7 +68,7 @@ architecture beh of cmd_dec_sdram_cntrl is
     attribute ramstyle        : string;
     attribute ramstyle of beh : architecture is "M9K";
 
-     --buffers counters etc fÃƒÆ’Ã‚Â¼r bildempfang
+     --buffers counters etc fÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¼r bildempfang
     signal rec_buff_rg     : t_rec_buff_rg := (others => x"0000");
 	 signal rec_buff_b		: t_rec_buff_b  := (others => x"00");
     signal page_counter : INTEGER range 0 to 3072 := 0;
@@ -905,8 +905,9 @@ begin
 									 
 								elsif br=14 then
 									if i<256 then
-										rg_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 16));
-										b_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 8));
+										i := 256;
+										--rg_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 16));
+										--b_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 8));
 										i:=i+1;
 									else
 										br:=br+1;
