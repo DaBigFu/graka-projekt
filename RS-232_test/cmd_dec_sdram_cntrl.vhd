@@ -25,7 +25,8 @@ entity cmd_dec_sdram_cntrl is
         dbg_page_count : out integer range 0 to 1874;
         dbg_byte_count : out integer range 0 to 255;
         dbg_cyc_count  : out std_logic_vector(27 downto 0);
-		dbg_refresh_cyc: out std_logic_vector(15 downto 0)
+		  dbg_refresh_cyc: out std_logic_vector(15 downto 0);
+		  dbg_switch : in STD_LOGIC
 
     );
 
@@ -34,25 +35,25 @@ end entity cmd_dec_sdram_cntrl;
 architecture beh of cmd_dec_sdram_cntrl is
 
     -- interne States
-    type states is (s_ram_init, s_ram_rd, s_ram_fullpagewrite, s_ram_refresh, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic);
+    type states is (s_ram_init, s_ram_rd, s_ram_fullpagewrite, s_ram_refresh, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic, s_brightness);
     signal current_state, next_state : states;
 
      --interne Signale fuer Ausgangspins
     --signal   iDQ                   : STD_LOGIC_VECTOR(15 downto 0) := "ZZZZZZZZZZZZZZZZ";
     signal   iADDR                 : STD_LOGIC_VECTOR(12 downto 0) := "0000000000000";
-    signal   iBA, iDQM, bank       : STD_LOGIC_VECTOR(1 downto 0) := "00";
+    signal   iBA, iDQM		        : STD_LOGIC_VECTOR(1 downto 0) := "00";
     signal   iWE, iCAS, iRAS, iCKE : STD_LOGIC := '0';
     signal   iCS                   : STD_LOGIC := '1';
     signal   ipixel                : STD_LOGIC_VECTOR(23 downto 0) := x"000000";
 
     -- Buffer fuer 8 Zeilen des anzuzeigenden Bildes
     type rg_array is array (integer range 0 to 255) of std_logic_vector(15 downto 0);
-    signal rg_buf0, rg_buf1, rg_buf2, rg_buf3 : rg_array := (others => x"0000") ;
+    signal rg_buf0, rg_buf1, rg_buf2, rg_buf3, rg_process : rg_array := (others => x"0000") ;
 	 type b_array is array(integer range 0 to 255) of std_LOGIC_VECTOR(7 downto 0);
-	 signal b_buf0, b_buf1, b_buf2, b_buf3: b_array := (others => x"00");
+	 signal b_buf0, b_buf1, b_buf2, b_buf3, b_process: b_array := (others => x"00");
 
     --iterne Signale fuer Kommunikation zwischen den Prozessen
-    signal  initialized, rd_done, rd_req, wr_done, refreshed : STD_LOGIC := '0';
+    signal  initialized, rd_done, rd_req, wr_done, refreshed, brightness : STD_LOGIC := '0';
     signal buf_y                                             : STD_LOGIC_VECTOR(9 downto 0) := "0000000000"; --speichert global die Nummer der letzten gepufferten Bildzeile
     signal  rx_busy_last                                     : std_logic := '0';
     signal pic_received                                      : STD_LOGIC := '0';
@@ -121,6 +122,8 @@ begin
                     next_state <= s_receive_pic;
                 elsif rd_req = '1' then
                     next_state <= s_ram_rd;
+					 elsif dbg_switch = '1' and brightness='0' then
+						  next_state <= s_brightness;
 					 else
                     next_state <= s_wait_for_com;
                 end if;
@@ -164,7 +167,12 @@ begin
                     next_state <= s_ram_refresh;
                 end if;
 
-
+				when s_brightness =>
+					if brightness = '1' then
+						next_state <= s_wait_for_tx;
+					else
+						next_state <= s_brightness;
+					end if;
 
                 ---------------------------------------------------------------------------------------
                 -- SDRAM stuff ------------------------------------------------------------------------
@@ -212,6 +220,10 @@ begin
         variable refresh           : integer range 0 to 15 := 2;
         variable refresh_cnt       : integer range 0 to 8191 := 0;
 		  variable dbg_refresh_int : integer range 0 to 65000 := 0;
+		  variable brgt_cnt : integer range 0 to 4095 := 0;
+		  variable br : integer range 0 to 31 := 0;
+		  variable i : integer range 0 to 511 := 0;
+		  variable bank : integer range 0 to 3 := 0;
 
           --variable received_pic_counter : integer range 0 to 7 := 0;
 
@@ -239,6 +251,7 @@ begin
             rx_cmd       <= unidentified;
             pic_received <= '0';
             refreshed    <= '0';
+				brightness	 <= '0';
 
             pixel_counter <= 0;
             page_counter <= 0;
@@ -619,7 +632,7 @@ begin
 
                     if rd_cnt < 4 then           --fuehrt 4 full page rds durch
                         if rd = 0 then              --Bank Active (ACT) + row auf adresspin
-                            iADDR <= std_logic_vector(to_unsigned(row, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            iADDR <= std_logic_vector(to_unsigned(row, iADDR'length)); iBA <= std_logic_vector(to_unsigned(bank, iBA'length)); iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             rd := rd+1;
 
                         elsif rd = 1 then           --tRCD
@@ -632,7 +645,7 @@ begin
                             end if;
 
                         elsif rd = 2 then           --rd  w/o precharge command + column auf Adresspin
-                            iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '1';
+                            iADDR <= "0000000000000"; iBA <= std_logic_vector(to_unsigned(bank, iBA'length)); iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '1';
                             rd := rd+1;
 
                         elsif rd = 3 then           --CAS latency
@@ -672,7 +685,7 @@ begin
 
 
                         elsif rd = 5 then         --precharge
-                            iADDR <= "0010000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+                            iADDR <= "0010000000000"; iBA <= std_logic_vector(to_unsigned(bank, iBA'length)); iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
                             rd := rd+1;
 
                         elsif rd = 6 then         --trp
@@ -686,7 +699,7 @@ begin
                             end if;
 									 
 								elsif rd = 7 then              --Bank Active (ACT) + row auf adresspin
-                            iADDR <= std_logic_vector(to_unsigned(row, iADDR'length)); iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            iADDR <= std_logic_vector(to_unsigned(row, iADDR'length)); iBA <= std_logic_vector(to_unsigned((bank+1), iBA'length)); iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             --iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             rd := rd+1;
 
@@ -700,7 +713,7 @@ begin
                             end if;
 
                         elsif rd = 9 then           --rd  w/o precharge command + column auf Adresspin
-                            iADDR <= "0000000000000"; iBA <= "01"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '1';
+                            iADDR <= "0000000000000"; iBA <= std_logic_vector(to_unsigned((bank+1), iBA'length)); iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '1';
                             rd := rd+1;
 
                         elsif rd = 10 then           --CAS latency
@@ -740,7 +753,7 @@ begin
 
 
                         elsif rd = 12 then         --precharge
-                            iADDR <= "0010000000000"; iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+                            iADDR <= "0010000000000"; iBA <= std_logic_vector(to_unsigned((bank+1), iBA'length)); iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
                             rd := rd+1;
 
                         elsif rd = 13 then         --trp
@@ -778,7 +791,246 @@ begin
                     end if;
 
 
+					 --#######################################################################################################################
+					 -- s_brightness #########################################################################################################
+					 -- veraendert jeden Farbkanal um den uebergebenen Wert ##################################################################
+					 --#######################################################################################################################
+					 when s_brightness=>
+					 if brgt_cnt<3072 then
+								if br = 0 then              --Bank Active (ACT) + brgt_cnt auf adresspin
+									 DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
+                            iADDR <= std_logic_vector(to_unsigned(brgt_cnt, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            br := br+1;
 
+                        elsif br = 1 then           --tRCD
+                            iCS <= '1';
+                            if cnt2 < 2 then
+                                cnt2 := cnt2+1;
+                            else
+                                cnt2 := 0;
+                                br   := br+1;
+                            end if;
+
+                        elsif br = 2 then           --rd  w/o precharge command + column auf Adresspin
+                            iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '1';
+                            br := br+1;
+
+                        elsif br = 3 then           --CAS latency
+                            iCS <= '1';
+                            if cnt2 < 2 then
+                                cnt2 := cnt2+1;
+                            else
+                                br   := br+1;
+                                cnt2 := 0;
+                                cnt3 :=0;
+                            end if;
+
+                        elsif br = 4 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
+                            if cnt3 < 256 then
+                              
+											rg_process(cnt3)<=DRAM_DQ;
+											cnt3 := cnt3+1;
+                            else
+                                
+                                br   := br+1;
+                                cnt3 := 0;
+                            end if;
+
+
+                        elsif br = 5 then         --precharge
+                            iADDR <= "0010000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+                            br := br+1;
+
+                        elsif br = 6 then         --trp
+                            iCS <= '1';
+                            if cnt2 < 9 then
+                                cnt2 := cnt2+1;
+                            else
+												br   := br+1;
+												cnt2 := 0;
+										  
+                            end if;
+									 
+								elsif br = 7 then              --Bank Active (ACT) + row auf adresspin
+                            iADDR <= std_logic_vector(to_unsigned(brgt_cnt, iADDR'length)); iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            br := br+1;
+
+                        elsif br = 8 then           --tRCD
+                            iCS <= '1';
+                            if cnt2 < 2 then
+                                cnt2 := cnt2+1;
+                            else
+                                cnt2 := 0;
+                                br   := br+1;
+                            end if;
+
+                        elsif br = 9 then           --rd  w/o precharge command + column auf Adresspin
+                            iADDR <= "0000000000000"; iBA <= "01"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '1';
+                            br := br+1;
+
+                        elsif br = 10 then           --CAS latency
+                            iCS <= '1';
+                            if cnt2 < 2 then
+                                cnt2 := cnt2+1;
+                            else
+                                br   := br+1;
+                                cnt2 := 0;
+                                cnt3:=0;
+                            end if;
+
+                        elsif br = 11 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
+                            if cnt3 < 256 then
+                              
+											b_process<=DRAM_DQ;
+											
+											cnt3 := cnt3+1;
+                            else
+                                
+                                br   := br+1;
+                                cnt3 := 0;
+                            end if;
+
+
+                        elsif br = 12 then         --precharge
+                            iADDR <= "0010000000000"; iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+                            br := br+1;
+
+                        elsif br = 13 then         --trp
+                            iCS <= '1';
+                            if cnt2 < 2 then
+                                cnt2 := cnt2+1;
+                            else
+											br   := br+1;
+											cnt2 := 0;
+										  
+                            end if;
+									 
+								elsif br=14 then
+									while i<256 loop
+										rg_process(i)<=rg_process(i)+8224;
+										b_process(i)<=b_process(i)+32;
+										i:=i+1;
+									end loop;
+									br:=br+1;
+									
+								elsif br=15 then		--bank active
+									iADDR <= std_LOGIC_VECTOR(to_unsigned((brgt_cnt), iADDR'length)); iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+									wr := wr+1;
+
+								elsif br = 16 then       --tRCD
+									iCS <= '1';
+									if cnt2 < 2 then
+										cnt2 := cnt2+1;
+									else
+										cnt2 := 0;
+										br   := br+1;
+									end if;
+
+								elsif br = 17 then       --write
+									iADDR   <= "0000000000000"; iBA <= "10"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
+									DRAM_DQ <= rg_process(cnt3);
+									cnt3 := cnt3+1;
+									br   := br+1;
+
+                   
+                        
+								elsif br = 18 then       --write die restlichen 255 words
+									iCS <= '1';
+									if cnt3 < 256 then
+										DRAM_DQ <= rg_process(cnt3);
+										cnt3 := cnt3+1;
+									else
+										iRAS<='1'; iCAS<='1'; iWE<='0'; iCS<='0';   --burststop
+										cnt3 := 0;
+										br   := br+1;
+									end if;
+
+								elsif br = 19 then       --tRDL
+									iCS<='1';
+									if cnt3 < 1 then
+										cnt3 := cnt3+1;
+									else
+										cnt3 := 0;
+										br   := br+1;
+									end if;
+
+								elsif br = 20 then       --precharge
+									iADDR <= "0010000000000"; iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+									br := br+1;
+
+								elsif wr = 21 then       --tRP
+									iCS <= '1';
+									if cnt2 < 9 then
+										cnt2 := cnt2+1;
+									else
+										cnt2 := 0;
+										br   := br+1;
+									 
+									end if;
+
+								elsif br = 22 then          --bank active
+									iADDR <= std_LOGIC_VECTOR(to_unsigned((brgt_cnt), iADDR'length)); iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+									br := br+1;
+
+								elsif br = 23 then       --tRCD
+									iCS <= '1';
+									if cnt2 < 2 then
+                            cnt2 := cnt2+1;
+									else
+                           
+                            cnt2 := 0;
+                            br   := br+1;
+									end if;
+
+								elsif br = 24 then       --write
+									iADDR   <= "0000000000000"; iBA <= "11"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
+									DRAM_DQ <= b_process(cnt3)&x"00";
+									cnt3 := cnt3+1;
+									br   := br+1;
+
+								elsif br = 25 then       --write die restlichen 255 words
+									iCS <= '1';
+									if cnt3 < 256 then
+										DRAM_DQ <= b_process(cnt3)&x"00";
+										cnt3 := cnt3+1;
+									else
+										iRAS<='1'; iCAS<='1'; iWE<='0'; iCS<='0';   --burststop
+										cnt3 := 0;
+										br   := br+1;
+									end if;
+
+								elsif br = 26 then       --tRDL
+									iCS<='1';
+									if cnt3 < 1 then
+                            cnt3 := cnt3+1;
+									else
+                            cnt3 := 0;
+                            br   := br+1;
+									end if;
+
+								elsif br = 27 then       --precharge
+									iADDR <= "0010000000000"; iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+									br := br+1;
+
+								elsif wr = 12 then       --tRP
+									iCS <= '1';
+									if cnt2 < 2 then
+                            cnt2 := cnt2+1;
+									else
+										brgt_cnt := brgt_cnt +1;
+										cnt2 := 0;
+										br   := 0;
+									 
+									end if;
+								
+								else
+                           br := 0;
+								end if;
+						else
+							brightness<='1';
+							bank:=2;
+						end if;
+					 
                 when others =>
                     null;
             end case;
