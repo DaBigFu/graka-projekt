@@ -106,7 +106,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, wr_done, initialized, refreshed, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received)
+    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, wr_done, initialized, refreshed, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received, brightness, dbg_switch)
     begin
 
         case current_state is
@@ -169,7 +169,7 @@ begin
 
 				when s_brightness =>
 					if brightness = '1' then
-						next_state <= s_wait_for_tx;
+						next_state <= s_wait_for_com;
 					else
 						next_state <= s_brightness;
 					end if;
@@ -627,8 +627,6 @@ begin
                 when s_ram_rd =>
                     rd_req  <= '0';
                     DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
-						  
-						  dbg_refresh_int:=dbg_refresh_int+1;
 
                     if rd_cnt < 4 then           --fuehrt 4 full page rds durch
                         if rd = 0 then              --Bank Active (ACT) + row auf adresspin
@@ -782,8 +780,7 @@ begin
 								end if;
 								buf_y<=std_LOGIC_VECTOR(to_unsigned(bf_y, buf_y'length));
 								
-								dbg_refresh_cyc <= std_LOGIC_VECTOR(to_unsigned(dbg_refresh_int, 16));
-								dbg_refresh_int:=0;
+								
 
                         rd_cnt := 0;
                         rd_done <= '1';                                             --wieder in den Zustand s_ram_idle versetzen
@@ -796,6 +793,7 @@ begin
 					 -- veraendert jeden Farbkanal um den uebergebenen Wert ##################################################################
 					 --#######################################################################################################################
 					 when s_brightness=>
+					dbg_refresh_int:=dbg_refresh_int+1;
 					 if brgt_cnt<3072 then
 								if br = 0 then              --Bank Active (ACT) + brgt_cnt auf adresspin
 									 DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
@@ -881,7 +879,7 @@ begin
                         elsif br = 11 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
                             if cnt3 < 256 then
                               
-											b_process<=DRAM_DQ;
+											b_process(cnt3)<=DRAM_DQ(15 downto 8);
 											
 											cnt3 := cnt3+1;
                             else
@@ -906,16 +904,17 @@ begin
                             end if;
 									 
 								elsif br=14 then
-									while i<256 loop
-										rg_process(i)<=rg_process(i)+8224;
-										b_process(i)<=b_process(i)+32;
+									if i<256 then
+										rg_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 16));
+										b_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 8));
 										i:=i+1;
-									end loop;
-									br:=br+1;
-									
+									else
+										br:=br+1;
+										i:=0;
+									end if;
 								elsif br=15 then		--bank active
 									iADDR <= std_LOGIC_VECTOR(to_unsigned((brgt_cnt), iADDR'length)); iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
-									wr := wr+1;
+									br := br+1;
 
 								elsif br = 16 then       --tRCD
 									iCS <= '1';
@@ -958,7 +957,7 @@ begin
 									iADDR <= "0010000000000"; iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
 									br := br+1;
 
-								elsif wr = 21 then       --tRP
+								elsif br = 21 then       --tRP
 									iCS <= '1';
 									if cnt2 < 9 then
 										cnt2 := cnt2+1;
@@ -1012,11 +1011,13 @@ begin
 									iADDR <= "0010000000000"; iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
 									br := br+1;
 
-								elsif wr = 12 then       --tRP
+								elsif br = 28 then       --tRP
 									iCS <= '1';
 									if cnt2 < 2 then
                             cnt2 := cnt2+1;
 									else
+										dbg_refresh_cyc <= std_LOGIC_VECTOR(to_unsigned(dbg_refresh_int, 16));
+										dbg_refresh_int:=0;
 										brgt_cnt := brgt_cnt +1;
 										cnt2 := 0;
 										br   := 0;
@@ -1094,7 +1095,9 @@ begin
 								ipixel<=rg_buf3(pic_x-768)&b_buf3(pic_x-768);
 							end if;
 						
-
+					 when s_brightness =>
+						ipixel<=x"00FFFF";
+						
                 when others =>
                     null;
             end case;
