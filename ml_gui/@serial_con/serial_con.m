@@ -63,6 +63,7 @@ classdef serial_con < handle
             end
         end
         
+        %close the port, but only if it's open
         function close_port(obj)
             if ~(obj.status == 1)
                 fclose(obj.ser_port);
@@ -113,6 +114,7 @@ classdef serial_con < handle
             end
         end
         
+        %write uint8 without checking the port
         function write_uint8_fast(obj, int_in)
             fwrite(obj.ser_port,int_in, 'uint8');
         end
