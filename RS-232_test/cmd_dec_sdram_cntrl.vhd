@@ -242,7 +242,7 @@ begin
             iCS   <= '1';
             buf_y <= "0000000000";
 				byte_toggle<= "00";
-				bank<="00";
+				bank := 0;
 
             initialized  <= '0';
             rd_req       <= '0';
