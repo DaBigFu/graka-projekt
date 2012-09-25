@@ -844,9 +844,9 @@ begin
 									 
 								elsif br=14 then
 									if i<256 then
-										--b_process(i) 					<= std_logic_vector(capped_add(unsigned(b_process(i)), 					filter_set.move_hist));
-										--rg_process(i) 					<= std_logic_vector(capped_add(unsigned(rg_process(i)(15 downto 8)), filter_set.move_hist)) &
-										--										std_logic_vector(capped_add(unsigned(rg_process(i)(7 downto 0)), 	filter_set.move_hist));
+										b_process(i) 					<= std_logic_vector(capped_add(unsigned(b_process(i)), 					filter_set.move_hist));
+										rg_process(i) 					<= std_logic_vector(capped_add(unsigned(rg_process(i)(15 downto 8)), filter_set.move_hist)) &
+																				std_logic_vector(capped_add(unsigned(rg_process(i)(7 downto 0)), 	filter_set.move_hist));
 																					
 										--rg_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 16));
 										--b_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 8));

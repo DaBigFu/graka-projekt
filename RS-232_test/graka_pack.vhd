@@ -47,9 +47,9 @@ package body graka_pack is
 
 function capped_add(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned is
 	--adds / subtracts sum2 from unsigned sum1, returns result in 0...255 range.
-	variable erg : signed(8 downto 0) := (others => '0');
+	variable erg : signed(9 downto 0) := (others => '0');
 	begin
-		erg := signed('0' & sum1) + sum2;
+		erg := signed("00" & sum1) + sum2;
 		if erg > 255 then
 			return to_unsigned(255,8);
 		elsif erg < 0 then
