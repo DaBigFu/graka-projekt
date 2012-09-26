@@ -60,7 +60,7 @@ constant c_cram_empty : t_cram := (
     data_r  => (others => '0'),
     data_g  => (others => '0'),
     data_b  => (others => '0'),
-    we      => '1',
+    we      => '0',
     q_r     => (others => '0'),
     q_g     => (others => '0'),
     q_B     => (others => '0')

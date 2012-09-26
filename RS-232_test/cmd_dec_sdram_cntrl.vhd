@@ -68,7 +68,7 @@ architecture beh of cmd_dec_sdram_cntrl is
     attribute ramstyle        : string;
     attribute ramstyle of beh : architecture is "M9K";
 
-     --buffers counters etc fÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¼r bildempfang
+     --buffers counters etc fÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼r bildempfang
     signal rec_buff_rg     : t_rec_buff_rg := (others => x"0000");
 	 signal rec_buff_b		: t_rec_buff_b  := (others => x"00");
     signal page_counter : INTEGER range 0 to 3072 := 0;
@@ -79,25 +79,25 @@ architecture beh of cmd_dec_sdram_cntrl is
 
 begin
 
-	ram_comp_0  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram0.addr, ram0.data_r, ram0.we, ram0.q_r);
-	ram_comp_1  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram0.addr, ram0.data_g, ram0.we, ram0.q_g);
-	ram_comp_2  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram0.addr, ram0.data_b, ram0.we, ram0.q_b);
+	ram_comp_0  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram0.addr, ram0.data_r, ram0.we, ram0.q_r);
+	ram_comp_1  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram0.addr, ram0.data_g, ram0.we, ram0.q_g);
+	ram_comp_2  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram0.addr, ram0.data_b, ram0.we, ram0.q_b);
 	                                                                              
-	ram_comp_3  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram1.addr, ram1.data_r, ram1.we, ram1.q_r);
-	ram_comp_4  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram1.addr, ram1.data_g, ram1.we, ram1.q_g);
-	ram_comp_5  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram1.addr, ram1.data_b, ram1.we, ram1.q_b);
+	ram_comp_3  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram1.addr, ram1.data_r, ram1.we, ram1.q_r);
+	ram_comp_4  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram1.addr, ram1.data_g, ram1.we, ram1.q_g);
+	ram_comp_5  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram1.addr, ram1.data_b, ram1.we, ram1.q_b);
 	                                                                              
-	ram_comp_6  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram2.addr, ram2.data_r, ram2.we, ram2.q_r);
-	ram_comp_7  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram2.addr, ram2.data_g, ram2.we, ram2.q_g);
-	ram_comp_8  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram2.addr, ram2.data_b, ram2.we, ram2.q_b);
+	ram_comp_6  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram2.addr, ram2.data_r, ram2.we, ram2.q_r);
+	ram_comp_7  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram2.addr, ram2.data_g, ram2.we, ram2.q_g);
+	ram_comp_8  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram2.addr, ram2.data_b, ram2.we, ram2.q_b);
 	                                                                              
-	ram_comp_9  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram3.addr, ram3.data_r, ram3.we, ram3.q_r);
-	ram_comp_10 : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram3.addr, ram3.data_g, ram3.we, ram3.q_g);
-	ram_comp_11 : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram3.addr, ram3.data_b, ram3.we, ram3.q_b);
+	ram_comp_9  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram3.addr, ram3.data_r, ram3.we, ram3.q_r);
+	ram_comp_10 : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram3.addr, ram3.data_g, ram3.we, ram3.q_g);
+	ram_comp_11 : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram3.addr, ram3.data_b, ram3.we, ram3.q_b);
 	                                                                              
-	ram_comp_12 : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram4.addr, ram4.data_r, ram4.we, ram4.q_r);
-	ram_comp_13 : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram4.addr, ram4.data_g, ram4.we, ram4.q_g);
-	ram_comp_14 : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram4.addr, ram4.data_b, ram4.we, ram4.q_b);
+	ram_comp_12 : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram4.addr, ram4.data_r, ram4.we, ram4.q_r);
+	ram_comp_13 : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram4.addr, ram4.data_g, ram4.we, ram4.q_g);
+	ram_comp_14 : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram4.addr, ram4.data_b, ram4.we, ram4.q_b);
 
     dbg_byte_count <= pixel_counter;
     dbg_page_count <= page_counter;
@@ -265,6 +265,12 @@ begin
 
             pixel_counter <= 0;
             page_counter <= 0;
+				
+				ram0.we <= '0';
+				ram1.we <= '0';
+				ram2.we <= '0';
+				ram3.we <= '0';
+				ram4.we <= '0';
 
 
             cnt1          := 0;
@@ -342,33 +348,36 @@ begin
                         byte_toggle   <= "00";
                         page_counter  <= page_counter + 1;
                         page_received <= '1';
+								ram0.we <= '0';
 
                     elsif page_counter = 3072 then --3072
                                     --done
                         pixel_counter <= 0;
                         byte_toggle  <= "00";
                         pic_received <= '1';
+								ram0.we <= '0';
 
-                    elsif rx_busy = '1' then						  
+                    elsif rx_busy = '1' then		
+								ram0.we <= '0';
                         rx_busy_last <= '1';
                     elsif rx_busy = '0' and rx_busy_last = '1' then
                         rx_busy_last <= '0';                        
 
                         inner_if : if byte_toggle = "00" then
-                                    --write upper 4 bit
-                            --rec_buff_b(pixel_counter) <= data_in;
-									 rec_buff_rg(pixel_counter)(15 downto 8) <= data_in;
+									 ram0.we <= '1';
+									 ram0.addr <= pixel_counter;
+									 ram0.data_r <= data_in;
                             byte_toggle                         <= "01";
 
                         elsif byte_toggle = "01" then
-                                    --write lower 8 bit
-                            rec_buff_rg(pixel_counter)(7 downto 0) <= data_in;
+									 ram0.addr <= pixel_counter;
+									 ram0.data_g <= data_in;
                             byte_toggle                        <= "10";
                                                         
                         elsif byte_toggle = "10" then
-                            --rec_buff_rg(pixel_counter)(15 downto 8) <= data_in;
-									 rec_buff_b(pixel_counter) <= data_in;
-                            byte_toggle                        <= "00";                            
+									 ram0.addr <= pixel_counter;
+									 ram0.data_b <= data_in;
+                            byte_toggle <= "00";                            
                             pixel_counter <= pixel_counter + 1;
 
                         end if inner_if;
@@ -398,7 +407,8 @@ begin
 
                     elsif wr = 2 then       --write
                         iADDR   <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-                        DRAM_DQ <= rec_buff_rg(cnt3);
+								ram0.addr <= cnt3;
+                        DRAM_DQ <= ram0.q_r & ram0.q_g;
                         cnt3 := cnt3+1;
                         wr   := wr+1;
 
@@ -407,7 +417,8 @@ begin
                     elsif wr = 3 then       --write die restlichen 255 words
                         iCS <= '1';
                         if cnt3 < 256 then
-                           DRAM_DQ <= rec_buff_rg(cnt3);
+									ram0.addr <= cnt3;
+                           DRAM_DQ <= ram0.q_r & ram0.q_g;
 									cnt3 := cnt3+1;
                         else
                             iRAS<='1'; iCAS<='1'; iWE<='0'; iCS<='0';   --burststop
@@ -454,7 +465,8 @@ begin
 
                     elsif wr = 9 then       --write
                         iADDR   <= "0000000000000"; iBA <= "01"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-                        DRAM_DQ <= rec_buff_b(cnt3)&x"00";
+								ram0.addr <= cnt3;
+                        DRAM_DQ <= ram0.q_b & x"00";
                         cnt3 := cnt3+1;
                         wr   := wr+1;
 
@@ -463,7 +475,8 @@ begin
                     elsif wr = 10 then       --write die restlichen 255 words
                         iCS <= '1';
                         if cnt3 < 256 then
-                           DRAM_DQ <= rec_buff_b(cnt3)&x"00";
+                           ram0.addr <= cnt3;
+									DRAM_DQ <= ram0.q_b & x"00";
 									cnt3 := cnt3+1;
                         else
                             iRAS<='1'; iCAS<='1'; iWE<='0'; iCS<='0';   --burststop
