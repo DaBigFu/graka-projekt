@@ -22,11 +22,51 @@ type t_filter_set is record
 		move_hist : unsigned(7 downto 0);
 end record;
 
+type t_cram is record
+	addr	:  natural range 0 to 255;
+	data_r:  std_logic_vector(7 downto 0);
+	data_g:  std_logic_vector(7 downto 0);
+	data_b:  std_logic_vector(7 downto 0);
+	we		:  std_logic;
+	q_r	:  std_logic_vector(7 downto 0);
+	q_g	:  std_logic_vector(7 downto 0);
+	q_B	:  std_logic_vector(7 downto 0);
+end record;
+
+component single_port_ram
+		generic 
+		(
+			DATA_WIDTH : natural := 8;
+			ADDR_WIDTH : natural := 8
+		);
+		port 
+		(
+			clk		: in std_logic;
+			addr	: in natural range 0 to 2**ADDR_WIDTH - 1;
+			data	: in std_logic_vector((DATA_WIDTH-1) downto 0);
+			we		: in std_logic := '1';
+			q		: out std_logic_vector((DATA_WIDTH -1) downto 0)
+		);
+end component single_port_ram;
+
 
 --###########################################################################
 --constants
 constant c_rx_com_arr : t_command_array := (x"02", x"03",x"05", x"11");
 constant c_tx_com_arr : t_command_array := (x"06", x"17",x"00", x"00");
+
+constant c_cram_empty : t_cram := (
+    addr    => 0,
+    data_r  => (others => '0'),
+    data_g  => (others => '0'),
+    data_b  => (others => '0'),
+    we      => '1',
+    q_r     => (others => '0'),
+    q_g     => (others => '0'),
+    q_B     => (others => '0')
+);
+
+
 
 constant c_filter_set_empty : t_filter_set := (
 	move_hist => (others => '0')

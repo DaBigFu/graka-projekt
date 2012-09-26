@@ -74,8 +74,30 @@ architecture beh of cmd_dec_sdram_cntrl is
     signal page_counter : INTEGER range 0 to 3072 := 0;
     signal pixel_counter : INTEGER range 0 to 256 := 0;
     signal byte_toggle  : STD_LOGIC_VECTOR(1 downto 0) := "00";
+	 
+	 signal ram0, ram1, ram2, ram3, ram4 : t_cram := c_cram_empty; 
 
 begin
+
+	ram_comp_0  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram0.addr, ram0.data_r, ram0.we, ram0.q_r);
+	ram_comp_1  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram0.addr, ram0.data_g, ram0.we, ram0.q_g);
+	ram_comp_2  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram0.addr, ram0.data_b, ram0.we, ram0.q_b);
+	                                                                              
+	ram_comp_3  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram1.addr, ram1.data_r, ram1.we, ram1.q_r);
+	ram_comp_4  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram1.addr, ram1.data_g, ram1.we, ram1.q_g);
+	ram_comp_5  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram1.addr, ram1.data_b, ram1.we, ram1.q_b);
+	                                                                              
+	ram_comp_6  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram2.addr, ram2.data_r, ram2.we, ram2.q_r);
+	ram_comp_7  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram2.addr, ram2.data_g, ram2.we, ram2.q_g);
+	ram_comp_8  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram2.addr, ram2.data_b, ram2.we, ram2.q_b);
+	                                                                              
+	ram_comp_9  : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram3.addr, ram3.data_r, ram3.we, ram3.q_r);
+	ram_comp_10 : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram3.addr, ram3.data_g, ram3.we, ram3.q_g);
+	ram_comp_11 : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram3.addr, ram3.data_b, ram3.we, ram3.q_b);
+	                                                                              
+	ram_comp_12 : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram4.addr, ram4.data_r, ram4.we, ram4.q_r);
+	ram_comp_13 : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram4.addr, ram4.data_g, ram4.we, ram4.q_g);
+	ram_comp_14 : single_port_ram GENERIC MAP(8 ,8) PORT MAP(clk, ram4.addr, ram4.data_b, ram4.we, ram4.q_b);
 
     dbg_byte_count <= pixel_counter;
     dbg_page_count <= page_counter;
