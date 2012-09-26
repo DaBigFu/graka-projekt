@@ -266,12 +266,11 @@ begin
             pixel_counter <= 0;
             page_counter <= 0;
 				
-				ram0.we <= '0';
-				ram1.we <= '0';
-				ram2.we <= '0';
-				ram3.we <= '0';
-				ram4.we <= '0';
-
+				ram0 <= c_cram_empty;
+				ram1 <= c_cram_empty;
+				ram2 <= c_cram_empty;
+				ram3 <= c_cram_empty;
+				ram4 <= c_cram_empty;
 
             cnt1          := 0;
             cnt2          := 0;
