@@ -14,8 +14,15 @@ package ram_pack is
 
 
 procedure ram_read
-	(signal : in lol;
-	 signal : out llol);
+	(		bank									: in integer range 0 to 3;
+		row									: in integer range 0 to 4095;
+		iADDR        						: out STD_LOGIC_VECTOR(12 downto 0);
+		iBA, iDQM		        			: out STD_LOGIC_VECTOR(1 downto 0);
+		iWE, iCAS, iRAS, iCKE, iCS, rd_req, rd_done		: out STD_LOGIC := '0';
+		rg_buf0, rg_buf1, rg_buf2, rg_buf3		: out t_rec_buff_rg;
+		b_buf0, b_buf1, b_buf2, b_buf3			: out t_rec_buff_b;
+		buf_y												: out std_LOGIC_VECTOR(9 downto 0)
+		);
 
 
 
@@ -30,14 +37,27 @@ package body ram_pack is
 
 
 procedure ram_read
-	(signal : in lol;
-	 signal : out llol;	
+	(
+		bank									: in integer range 0 to 3;
+		row									: in integer range 0 to 4095;
+		iADDR        						: out STD_LOGIC_VECTOR(12 downto 0);
+		iBA, iDQM		        			: out STD_LOGIC_VECTOR(1 downto 0);
+		iWE, iCAS, iRAS, iCKE, iCS, rd_req, rd_done		: out STD_LOGIC := '0';
+		rg_buf0, rg_buf1, rg_buf2, rg_buf3		: out t_rec_buff_rg;
+		b_buf0, b_buf1, b_buf2, b_buf3			: out t_rec_buff_b;
+		buf_y												: out std_LOGIC_VECTOR(9 downto 0);
+	 
+	 
 	)is
 	
+		variable rd_cnt : integer range 0 to 7 := 0;
+		variable rd:		integer range 0 to 31 := 0;
+		variable cnt2	 : integer range 0 to 15 := 0;
+		variable cnt3	 : integer range 0 to 511 := 0;
+		variable bf_y	 : integer range 0 to 1023 := 0;
 BEGIN
 
-						  rd_req  <= '0';
-                    DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
+						  
 
                     if rd_cnt < 4 then           --fuehrt 4 full page rds durch
                         if rd = 0 then              --Bank Active (ACT) + row auf adresspin

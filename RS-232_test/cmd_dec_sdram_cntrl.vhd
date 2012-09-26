@@ -48,10 +48,10 @@ architecture beh of cmd_dec_sdram_cntrl is
     signal   ipixel                : STD_LOGIC_VECTOR(23 downto 0) := x"000000";
 
     -- Buffer fuer 8 Zeilen des anzuzeigenden Bildes
-    type rg_array is array (integer range 0 to 255) of std_logic_vector(15 downto 0);
-    signal rg_buf0, rg_buf1, rg_buf2, rg_buf3, rg_process : rg_array := (others => x"0000") ;
-	 type b_array is array(integer range 0 to 255) of std_LOGIC_VECTOR(7 downto 0);
-	 signal b_buf0, b_buf1, b_buf2, b_buf3, b_process: b_array := (others => x"00");
+    --type rg_array is array (integer range 0 to 255) of std_logic_vector(15 downto 0);
+    signal rg_buf0, rg_buf1, rg_buf2, rg_buf3, rg_process : t_rec_buff_rg := (others => x"0000") ;
+	 --type b_array is array(integer range 0 to 255) of std_LOGIC_VECTOR(7 downto 0);
+	 signal b_buf0, b_buf1, b_buf2, b_buf3, b_process: t_rec_buff_b := (others => x"00");
 
     --iterne Signale fuer Kommunikation zwischen den Prozessen
     signal  initialized, rd_done, rd_req, wr_done, brightness : STD_LOGIC := '0';
