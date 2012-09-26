@@ -2,6 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.graka_pack.all;
+use work.ram_pack.all;
 
 entity cmd_dec_sdram_cntrl is
 
@@ -215,6 +216,8 @@ begin
 		  variable br : integer range 0 to 31 := 0;
 		  variable i : integer range 0 to 511 := 0;
 		  variable bank : integer range 0 to 3 := 0;
+		  variable b_buff : std_LOGIC_VECTOR(7 downto 0);
+		  variable rg_buff : STD_LOGIC_VECTOR(15 downto 0);
 
           --variable received_pic_counter : integer range 0 to 7 := 0;
 
@@ -844,10 +847,14 @@ begin
 									 
 								elsif br=14 then
 									if i<256 then
-										b_process(i) 					<= std_logic_vector(capped_add(unsigned(b_process(i)), 					filter_set.move_hist));
-										rg_process(i) 					<= std_logic_vector(capped_add(unsigned(rg_process(i)(15 downto 8)), filter_set.move_hist)) &
-																				std_logic_vector(capped_add(unsigned(rg_process(i)(7 downto 0)), 	filter_set.move_hist));
+										--i := 256;
+										
+										b_buff 					:= std_logic_vector(capped_add_8(unsigned(b_process(i)), 					filter_set.move_hist));
+										--rg_buff 					:= std_logic_vector(capped_add(unsigned(rg_process(i)(15 downto 8)), filter_set.move_hist)) &
+										--								std_logic_vector(capped_add(unsigned(rg_process(i)(7 downto 0)), 	filter_set.move_hist));
 																					
+										b_process(i)<= b_buff;
+										--rg_process(i)<= rg_buff;
 										--rg_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 16));
 										--b_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 8));
 										i:=i+1;
