@@ -19,7 +19,7 @@ type t_rec_buff_rg is ARRAY(0 to 255) of std_logic_vector(15 downto 0);
 type t_rec_buff_b is ARRAY(0 to 255) of std_logic_vector(7 downto 0);
 
 type t_filter_set is record
-		move_hist : unsigned(7 downto 0);
+		move_hist : signed(7 downto 0);
 end record;
 
 type t_cram is record
@@ -116,7 +116,7 @@ constant c_dpram_empty : t_dpram := (
 
 
 constant c_filter_set_empty : t_filter_set := (
-	move_hist => (others => '0')
+	move_hist => x"64"
 );
 
 
@@ -126,17 +126,17 @@ function get_tx_command(com_in : t_tx_com) return STD_LOGIC_VECTOR;
 
 function get_rx_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) return t_rx_com;
 
-function capped_add(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned;
+function capped_add_8(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned;
 
 end package graka_pack;
 
 package body graka_pack is
 
-function capped_add(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned is
+function capped_add_8(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned is
 	--adds / subtracts sum2 from unsigned sum1, returns result in 0...255 range.
-	variable erg : signed(8 downto 0) := (others => '0');
+	variable erg : signed(9 downto 0) := (others => '0');
 	begin
-		erg := signed('0' & sum1) + ( '0' & sum2);
+		erg := signed("00" & sum1) + sum2;
 		if erg > 255 then
 			return to_unsigned(255,8);
 		elsif erg < 0 then
@@ -144,7 +144,7 @@ function capped_add(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) retu
 		else
 			return unsigned(erg(7 downto 0));
 		end if;
-end function capped_add;
+end function capped_add_8;
 		
 function get_tx_command(com_in : t_tx_com) return STD_LOGIC_VECTOR is
 	begin
