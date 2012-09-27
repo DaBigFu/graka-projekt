@@ -360,7 +360,7 @@ begin
 								rx_busy_last <= '1';
                     elsif rx_busy = '0' and rx_busy_last = '1' then
                         rx_busy_last <= '0';
-								ram0.we <= '1';                        
+								ram0.we <= '1';
 
                         inner_if : if byte_toggle = "00" then
 									 ram0.addr <= pixel_counter;
