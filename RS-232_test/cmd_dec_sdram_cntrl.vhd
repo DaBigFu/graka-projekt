@@ -216,7 +216,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy, byte_toggle, pixel_counter, page_counter, data_in, rec_buff_b, rec_buff_rg)
+    output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy, byte_toggle, pixel_counter, page_counter, data_in, rec_buff_b, rec_buff_rg, ram0)
 
         variable cnt1              : integer range 0 to 36000 := 0;
         variable cnt2              : integer range 0 to 31 := 0;
@@ -266,11 +266,11 @@ begin
             pixel_counter <= 0;
             page_counter <= 0;
 				
-				ram0 <= c_cram_empty;
-				ram1 <= c_cram_empty;
-				ram2 <= c_cram_empty;
-				ram3 <= c_cram_empty;
-				ram4 <= c_cram_empty;
+				ram0.we <= '0';
+				ram1.we <= '0';
+				ram2.we <= '0';
+				ram3.we <= '0';
+				ram4.we <= '0';
 
             cnt1          := 0;
             cnt2          := 0;
@@ -338,7 +338,7 @@ begin
                     rx_busy_last <= '0';
 
                 when s_receive_pic =>
-                    
+						  --ram0.we <= '0';
 						  wr_done <= '0';
 						  
 						  outer_if : if pixel_counter = 256 then
@@ -357,13 +357,12 @@ begin
 								ram0.we <= '0';
 
                     elsif rx_busy = '1' then		
-								ram0.we <= '0';
-                        rx_busy_last <= '1';
+								rx_busy_last <= '1';
                     elsif rx_busy = '0' and rx_busy_last = '1' then
-                        rx_busy_last <= '0';                        
+                        rx_busy_last <= '0';
+								ram0.we <= '1';                        
 
                         inner_if : if byte_toggle = "00" then
-									 ram0.we <= '1';
 									 ram0.addr <= pixel_counter;
 									 ram0.data_r <= data_in;
                             byte_toggle                         <= "01";
