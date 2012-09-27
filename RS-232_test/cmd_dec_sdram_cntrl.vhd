@@ -21,12 +21,12 @@ entity cmd_dec_sdram_cntrl is
         rx_busy  : in std_logic;
         tx_busy  : in std_logic;
 
-        dbg_state      : out STD_LOGIC_VECTOR(3 downto 0);
-        dbg_page_count : out integer range 0 to 1874;
-        dbg_byte_count : out integer range 0 to 255;
-        dbg_cyc_count  : out std_logic_vector(27 downto 0);
-		  dbg_refresh_cyc: out std_logic_vector(15 downto 0);
-		  dbg_switch : in STD_LOGIC
+        dbg_state       : out STD_LOGIC_VECTOR(3 downto 0);
+        dbg_page_count  : out integer range 0 to 1874;
+        dbg_byte_count  : out integer range 0 to 255;
+        dbg_cyc_count   : out std_logic_vector(27 downto 0);
+        dbg_refresh_cyc : out std_logic_vector(15 downto 0);
+        dbg_switch      : in STD_LOGIC
 
     );
 
@@ -41,63 +41,55 @@ architecture beh of cmd_dec_sdram_cntrl is
      --interne Signale fuer Ausgangspins
     --signal   iDQ                   : STD_LOGIC_VECTOR(15 downto 0) := "ZZZZZZZZZZZZZZZZ";
     signal   iADDR                 : STD_LOGIC_VECTOR(12 downto 0) := "0000000000000";
-    signal   iBA, iDQM		        : STD_LOGIC_VECTOR(1 downto 0) := "00";
+    signal   iBA, iDQM             : STD_LOGIC_VECTOR(1 downto 0) := "00";
     signal   iWE, iCAS, iRAS, iCKE : STD_LOGIC := '0';
     signal   iCS                   : STD_LOGIC := '1';
     signal   ipixel                : STD_LOGIC_VECTOR(23 downto 0) := x"000000";
 
     -- Buffer fuer 8 Zeilen des anzuzeigenden Bildes
-    type rg_array is array (integer range 0 to 255) of std_logic_vector(15 downto 0);
-    signal rg_buf0, rg_buf1, rg_buf2, rg_buf3, rg_process : rg_array := (others => x"0000") ;
-	 type b_array is array(integer range 0 to 255) of std_LOGIC_VECTOR(7 downto 0);
-	 signal b_buf0, b_buf1, b_buf2, b_buf3, b_process: b_array := (others => x"00");
+    --type rg_array is array (integer range 0 to 255) of std_logic_vector(15 downto 0);
+    --signal rg_buf0, rg_buf1, rg_buf2, rg_buf3, rg_process : rg_array := (others => x"0000") ;
+    --type b_array is array(integer range 0 to 255) of std_LOGIC_VECTOR(7 downto 0);
+    --signal b_buf0, b_buf1, b_buf2, b_buf3, b_process : b_array := (others => x"00");
+    type color_array is array (0 to 255) of std_logic_vector(7 downto 0);
+    signal r_buf0, r_buf1, r_buf2, r_buf3, g_buf0, g_buf1, g_buf2, g_buf3, b_buf0, b_buf1, b_buf2, b_buf3 : color_array := (others => x"00");
 
     --iterne Signale fuer Kommunikation zwischen den Prozessen
     signal  initialized, rd_done, rd_req, wr_done, brightness : STD_LOGIC := '0';
-    signal buf_y                                             : STD_LOGIC_VECTOR(9 downto 0) := "0000000000"; --speichert global die Nummer der letzten gepufferten Bildzeile
-    signal  rx_busy_last                                     : std_logic := '0';
-    signal pic_received                                      : STD_LOGIC := '0';
-    signal rx_cmd                                            : t_rx_com := unidentified;
-    signal tx_cmd                                            : t_tx_com := unidentified;
+    signal buf_y                                              : STD_LOGIC_VECTOR(9 downto 0) := "0000000000"; --speichert global die Nummer der letzten gepufferten Bildzeile
+    signal  rx_busy_last                                      : std_logic := '0';
+    signal pic_received                                       : STD_LOGIC := '0';
+    signal rx_cmd                                             : t_rx_com := unidentified;
+    signal tx_cmd                                             : t_tx_com := unidentified;
 
     signal page_received : STD_LOGIC := '0';
 
     -- temporaere signale
-    
-	 
+
+
     attribute ramstyle        : string;
     attribute ramstyle of beh : architecture is "M9K";
 
-     --buffers counters etc fÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼r bildempfang
-    signal rec_buff_rg     : t_rec_buff_rg := (others => x"0000");
-	 signal rec_buff_b		: t_rec_buff_b  := (others => x"00");
-    signal page_counter : INTEGER range 0 to 3072 := 0;
-    signal pixel_counter : INTEGER range 0 to 256 := 0;
-    signal byte_toggle  : STD_LOGIC_VECTOR(1 downto 0) := "00";
-	 
-	 signal ram0, ram1, ram2, ram3, ram4 : t_cram := c_cram_empty; 
+     --buffers counters etc fuer bildempfang
+    signal rec_buff_rg   : t_rec_buff_rg := (others => x"0000");
+    signal rec_buff_b    : t_rec_buff_b  := (others => x"00");
+    signal page_counter  : INTEGER range 0 to 3072 := 0;
+    signal pixel_counter : INTEGER range 0 to 511 := 0;
+    signal byte_toggle   : STD_LOGIC_VECTOR(1 downto 0) := "00";
+
+    signal ram0, ram5             : t_cram := c_cram_empty;
+    signal ram1, ram2, ram3, ram4 : t_dpram := c_dpram_empty;
 
 begin
 
-	ram_comp_0  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram0.addr, ram0.data_r, ram0.we, ram0.q_r);
-	ram_comp_1  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram0.addr, ram0.data_g, ram0.we, ram0.q_g);
-	ram_comp_2  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram0.addr, ram0.data_b, ram0.we, ram0.q_b);
-	                                                                              
-	ram_comp_3  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram1.addr, ram1.data_r, ram1.we, ram1.q_r);
-	ram_comp_4  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram1.addr, ram1.data_g, ram1.we, ram1.q_g);
-	ram_comp_5  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram1.addr, ram1.data_b, ram1.we, ram1.q_b);
-	                                                                              
-	ram_comp_6  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram2.addr, ram2.data_r, ram2.we, ram2.q_r);
-	ram_comp_7  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram2.addr, ram2.data_g, ram2.we, ram2.q_g);
-	ram_comp_8  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram2.addr, ram2.data_b, ram2.we, ram2.q_b);
-	                                                                              
-	ram_comp_9  : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram3.addr, ram3.data_r, ram3.we, ram3.q_r);
-	ram_comp_10 : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram3.addr, ram3.data_g, ram3.we, ram3.q_g);
-	ram_comp_11 : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram3.addr, ram3.data_b, ram3.we, ram3.q_b);
-	                                                                              
-	ram_comp_12 : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram4.addr, ram4.data_r, ram4.we, ram4.q_r);
-	ram_comp_13 : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram4.addr, ram4.data_g, ram4.we, ram4.q_g);
-	ram_comp_14 : single_port_ram GENERIC MAP(8, 8) PORT MAP(clk, ram4.addr, ram4.data_b, ram4.we, ram4.q_b);
+    ram_comp_0 : single_port_ram generic map(8, 8) port map(clk, ram0.addr, ram0.data_r, ram0.we, ram0.q_r);
+    ram_comp_1 : single_port_ram generic map(8, 8) port map(clk, ram0.addr, ram0.data_g, ram0.we, ram0.q_g);
+    ram_comp_2 : single_port_ram generic map(8, 8) port map(clk, ram0.addr, ram0.data_b, ram0.we, ram0.q_b);
+
+
+    ram_comp_15 : single_port_ram generic map(8, 8) port map(clk, ram5.addr, ram5.data_r, ram5.we, ram5.q_r);
+    ram_comp_16 : single_port_ram generic map(8, 8) port map(clk, ram5.addr, ram5.data_g, ram5.we, ram5.q_g);
+    ram_comp_17 : single_port_ram generic map(8, 8) port map(clk, ram5.addr, ram5.data_b, ram5.we, ram5.q_b);
 
     dbg_byte_count <= pixel_counter;
     dbg_page_count <= page_counter;
@@ -143,9 +135,9 @@ begin
                     next_state <= s_receive_pic;
                 elsif rd_req = '1' then
                     next_state <= s_ram_rd;
-					 elsif dbg_switch = '1' and brightness='0' then
-						  next_state <= s_brightness;
-					 else
+                elsif dbg_switch = '1' and brightness = '0' then
+                    next_state <= s_brightness;
+                else
                     next_state <= s_wait_for_com;
                 end if;
 
@@ -156,8 +148,8 @@ begin
             when s_wait_for_tx =>
                 if tx_busy = '1' then
                     next_state <= s_wait_for_tx;
-					 elsif tx_busy = '0' and pic_received = '1' then
-						  next_state <= s_wait_for_com;
+                elsif tx_busy = '0' and pic_received = '1' then
+                    next_state <= s_wait_for_com;
                 elsif tx_busy = '0' and page_counter > 0 then
                     next_state <= s_receive_pic;
                 else
@@ -180,12 +172,12 @@ begin
                     next_state <= s_ram_fullpagewrite;
                 end if;
 
-				when s_brightness =>
-					if brightness = '1' then
-						next_state <= s_wait_for_com;
-					else
-						next_state <= s_brightness;
-					end if;
+            when s_brightness =>
+                if brightness = '1' then
+                    next_state <= s_wait_for_com;
+                else
+                    next_state <= s_brightness;
+                end if;
 
                 ---------------------------------------------------------------------------------------
                 -- SDRAM stuff ------------------------------------------------------------------------
@@ -194,7 +186,7 @@ begin
             when s_ram_init =>
                 if initialized = '1' then
                     next_state <= s_wait_for_com;
-						  --next_state<=s_ram_idle;
+                          --next_state<=s_ram_idle;
                 else
                     next_state <= s_ram_init;
                 end if;
@@ -230,11 +222,11 @@ begin
         variable dbg_cyc_count_int : integer := 0;
         variable wr                : integer range 0 to 31 := 0;
         variable page_to_write     : integer range 0 to 4095 := 0;
-		  variable dbg_refresh_int : integer range 0 to 65000 := 0;
-		  variable brgt_cnt : integer range 0 to 4095 := 0;
-		  variable br : integer range 0 to 31 := 0;
-		  variable i : integer range 0 to 511 := 0;
-		  variable bank : integer range 0 to 3 := 0;
+        variable dbg_refresh_int   : integer range 0 to 65000 := 0;
+        variable brgt_cnt          : integer range 0 to 4095 := 0;
+        variable br                : integer range 0 to 31 := 0;
+        variable i                 : integer range 0 to 511 := 0;
+        variable bank              : integer range 0 to 3 := 0;
 
           --variable received_pic_counter : integer range 0 to 7 := 0;
 
@@ -243,17 +235,17 @@ begin
     begin
         if (reset = '0') then
             --iDQ      <= "ZZZZZZZZZZZZZZZZ";
-            iADDR <= "0000000000000";
-            iBA   <= "00";
-            iDQM  <= "00";
-            iWE   <= '0';
-            iCAS  <= '0';
-            iRAS  <= '0';
-            iCKE  <= '0';
-            iCS   <= '1';
-            buf_y <= "0000000001";
-				byte_toggle<= "00";
-				bank := 0;
+            iADDR       <= "0000000000000";
+            iBA         <= "00";
+            iDQM        <= "00";
+            iWE         <= '0';
+            iCAS        <= '0';
+            iRAS        <= '0';
+            iCKE        <= '0';
+            iCS         <= '1';
+            buf_y       <= "0000000001";
+            byte_toggle <= "00";
+            bank := 0;
 
             initialized  <= '0';
             rd_req       <= '0';
@@ -261,16 +253,13 @@ begin
             rx_busy_last <= '0';
             rx_cmd       <= unidentified;
             pic_received <= '0';
-				brightness	 <= '0';
+            brightness   <= '0';
 
             pixel_counter <= 0;
-            page_counter <= 0;
-				
-				ram0.we <= '0';
-				ram1.we <= '0';
-				ram2.we <= '0';
-				ram3.we <= '0';
-				ram4.we <= '0';
+            page_counter  <= 0;
+
+            ram0.we   <= '0';
+            ram5.we   <= '0';
 
             cnt1          := 0;
             cnt2          := 0;
@@ -283,16 +272,16 @@ begin
             cnt3          := 0;
             wr            := 0;
             page_to_write := 0;
-				bank:=0;
-				brgt_cnt:=0;
-				br:=0;
-				i:=0;
+            bank          := 0;
+            brgt_cnt      := 0;
+            br            := 0;
+            i             := 0;
                 --received_pic_counter := 0;
 
         elsif (clk'EVENT and clk = '1') then
-				
-				 
-				 
+
+
+
             case current_state is
 
                 ---------------------------------------------------------------------------------------
@@ -300,7 +289,7 @@ begin
                 -- get this shiat done ----------------------------------------------------------------
                 ---------------------------------------------------------------------------------------
                 when s_wait_for_com =>
-						  wr_done <= '0';
+                    wr_done      <= '0';
                     pic_received <= '0';
                     data_out     <= x"00";
                     TX_start     <= '0';
@@ -316,14 +305,14 @@ begin
                             tx_cmd <= unidentified;
                         end if;
                     end if;
-						  
-						  --previous s_sram_idle
-						  rd_done <= '0';
+
+                          --previous s_sram_idle
+                    rd_done <= '0';
                     iADDR   <= "1111111111111"; iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '1'; iRAS <= '1'; iCAS <= '1'; iWE <= '1'; --alles auf High, kein Befehl ausfuehren
-			
-						  pic_x:=to_integer(unsigned(Hcnt));
-			  
-                    if pic_x = 455 and Vcnt=buf_y then          
+
+                    pic_x := to_integer(unsigned(Hcnt));
+
+                    if pic_x = 455 and Vcnt = buf_y then
                         rd_req <= '1';
                     end if;
 
@@ -338,45 +327,46 @@ begin
                     rx_busy_last <= '0';
 
                 when s_receive_pic =>
-						  --ram0.we <= '0';
-						  wr_done <= '0';
-						  
-						  outer_if : if pixel_counter = 256 then
+                          --ram0.we <= '0';
+                    wr_done <= '0';
+
+                    outer_if : if pixel_counter = 256 then
                                     -- page done
-                        pixel_counter  <= 0;
+                        pixel_counter <= 0;
                         byte_toggle   <= "00";
                         page_counter  <= page_counter + 1;
                         page_received <= '1';
-								ram0.we <= '0';
+                        ram0.we       <= '0';
 
                     elsif page_counter = 3072 then --3072
                                     --done
                         pixel_counter <= 0;
-                        byte_toggle  <= "00";
-                        pic_received <= '1';
-								ram0.we <= '0';
+                        byte_toggle   <= "00";
+                        pic_received  <= '1';
+                        ram0.we       <= '0';
 
-                    elsif rx_busy = '1' then		
-								rx_busy_last <= '1';
+                    elsif rx_busy = '1' then
+                        rx_busy_last <= '1';
                     elsif rx_busy = '0' and rx_busy_last = '1' then
                         rx_busy_last <= '0';
-								ram0.we <= '1';                        
+                        ram0.we      <= '1';
 
                         inner_if : if byte_toggle = "00" then
-									 ram0.addr <= pixel_counter;
-									 ram0.data_r <= data_in;
-                            byte_toggle                         <= "01";
+                            ram0.addr   <= pixel_counter;
+                            ram0.data_r <= data_in;
+                            byte_toggle <= "01";
 
                         elsif byte_toggle = "01" then
-									 ram0.addr <= pixel_counter;
-									 ram0.data_g <= data_in;
-                            byte_toggle                        <= "10";
-                                                        
+                            ram0.addr   <= pixel_counter;
+                            ram0.data_g <= data_in;
+                            byte_toggle <= "10";
+
                         elsif byte_toggle = "10" then
-									 ram0.addr <= pixel_counter;
-									 ram0.data_b <= data_in;
-                            byte_toggle <= "00";                            
+                            ram0.addr     <= pixel_counter;
+                            ram0.data_b   <= data_in;
+                            byte_toggle   <= "00";
                             pixel_counter <= pixel_counter + 1;
+                            
 
                         end if inner_if;
                     end if outer_if;
@@ -392,40 +382,48 @@ begin
                     if wr = 0 then          --bank active
                         iADDR <= std_LOGIC_VECTOR(to_unsigned((page_to_write), iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                         wr := wr+1;
-
+                        cnt3:=0;
+                        
                     elsif wr = 1 then       --tRCD
                         iCS <= '1';
-                        if cnt2 < 2 then
+                        if cnt2 = 0 then
                             cnt2 := cnt2+1;
+                            
+                        elsif cnt2=1 then
+                            cnt2 := cnt2+1;
+                            ram0.addr <= cnt3;
+                            cnt3:=cnt3+1;     
                         else
-                           
+                            ram0.addr <= cnt3;
+                            cnt3:=cnt3+1;
                             cnt2 := 0;
                             wr   := wr+1;
                         end if;
 
+
                     elsif wr = 2 then       --write
-                        iADDR   <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-								ram0.addr <= cnt3;
-                        DRAM_DQ <= ram0.q_r & ram0.q_g;
+                        iADDR     <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
+                        ram0.addr <= cnt3;
+                        DRAM_DQ   <= ram0.q_r & ram0.q_g;
                         cnt3 := cnt3+1;
                         wr   := wr+1;
 
-                   
-                        
+
+
                     elsif wr = 3 then       --write die restlichen 255 words
                         iCS <= '1';
-                        if cnt3 < 256 then
-									ram0.addr <= cnt3;
-                           DRAM_DQ <= ram0.q_r & ram0.q_g;
-									cnt3 := cnt3+1;
+                        if cnt3 < 259 then
+                            ram0.addr <= cnt3;
+                            DRAM_DQ   <= ram0.q_r & ram0.q_g;
+                            cnt3 := cnt3+1;
                         else
-                            iRAS<='1'; iCAS<='1'; iWE<='0'; iCS<='0';   --burststop
+                            iRAS <= '1'; iCAS <= '1'; iWE <= '0'; iCS <= '0';   --burststop
                             cnt3 := 0;
                             wr   := wr+1;
                         end if;
 
                     elsif wr = 4 then       --tRDL
-                        iCS<='1';
+                        iCS <= '1';
                         if cnt3 < 1 then
                             cnt3 := cnt3+1;
                         else
@@ -442,48 +440,55 @@ begin
                         if cnt2 < 9 then
                             cnt2 := cnt2+1;
                         else
-									cnt2 := 0;
-									wr   := wr+1;
-									 
+                            cnt2 := 0;
+                            wr   := wr+1;
+
                         end if;
 
-							elsif wr = 7 then          --bank active
+                    elsif wr = 7 then          --bank active
                         iADDR <= std_LOGIC_VECTOR(to_unsigned((page_to_write), iADDR'length)); iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                         wr := wr+1;
-
+                        cnt3:=0;
+                        
                     elsif wr = 8 then       --tRCD
                         iCS <= '1';
-                        if cnt2 < 2 then
+                        if cnt2 = 0 then
                             cnt2 := cnt2+1;
+                            
+                        elsif cnt2=1 then
+                            cnt2 := cnt2+1;
+                            ram0.addr <= cnt3;
+                            cnt3:=cnt3+1;     
                         else
-                           
+                            ram0.addr <= cnt3;
+                            cnt3:=cnt3+1;
                             cnt2 := 0;
                             wr   := wr+1;
                         end if;
 
                     elsif wr = 9 then       --write
-                        iADDR   <= "0000000000000"; iBA <= "01"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-								ram0.addr <= cnt3;
-                        DRAM_DQ <= ram0.q_b & x"00";
+                        iADDR     <= "0000000000000"; iBA <= "01"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
+                        ram0.addr <= cnt3;
+                        DRAM_DQ   <= ram0.q_b & x"00";
                         cnt3 := cnt3+1;
                         wr   := wr+1;
 
-                   
-                        
+
+
                     elsif wr = 10 then       --write die restlichen 255 words
                         iCS <= '1';
-                        if cnt3 < 256 then
-                           ram0.addr <= cnt3;
-									DRAM_DQ <= ram0.q_b & x"00";
-									cnt3 := cnt3+1;
+                        if cnt3 < 259 then
+                            ram0.addr <= cnt3;
+                            DRAM_DQ   <= ram0.q_b & x"00";
+                            cnt3 := cnt3+1;
                         else
-                            iRAS<='1'; iCAS<='1'; iWE<='0'; iCS<='0';   --burststop
+                            iRAS <= '1'; iCAS <= '1'; iWE <= '0'; iCS <= '0';   --burststop
                             cnt3 := 0;
                             wr   := wr+1;
                         end if;
 
                     elsif wr = 11 then       --tRDL
-                        iCS<='1';
+                        iCS <= '1';
                         if cnt3 < 1 then
                             cnt3 := cnt3+1;
                         else
@@ -500,11 +505,11 @@ begin
                         if cnt2 < 9 then
                             cnt2 := cnt2+1;
                         else
-									page_to_write := page_to_write +1;
-									wr_done <= '1';
-									cnt2 := 0;
-									wr   := 0;
-									 
+                            page_to_write := page_to_write +1;
+                            wr_done <= '1';
+                            cnt2 := 0;
+                            wr   := 0;
+
                         end if;
 
                     else
@@ -623,30 +628,34 @@ begin
                             else
                                 rd   := rd+1;
                                 cnt2 := 0;
-                                cnt3:=0;
+                                cnt3 := 0;
                             end if;
 
                         elsif rd = 4 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
                             if cnt3 < 256 then
-                              
-											if rd_cnt=0 then
-												rg_buf0(cnt3)<=DRAM_DQ;
-												--rg_buf0(cnt3)<=x"0000";
-											elsif rd_cnt=1 then
-												rg_buf1(cnt3)<=DRAM_DQ;
-												--rg_buf1(cnt3)<=x"0000";
-											ELSIF rd_cnt = 2 then	
-												rg_buf2(cnt3)<=DRAM_DQ;
-												--rg_buf2(cnt3)<=x"0000";
-											ELSIF rd_cnt = 3 then	
-												rg_buf3(cnt3)<=DRAM_DQ;
-												--rg_buf3(cnt3)<=x"0000";
-											end if;
-										
-											
-											cnt3 := cnt3+1;
+
+                                if rd_cnt = 0 then
+                                    r_buf0(cnt3) <= DRAM_DQ(15 downto 8);
+                                    g_buf0(cnt3) <= DRAM_DQ(7 downto 0);
+
+                                elsif rd_cnt = 1 then
+                                    r_buf1(cnt3) <= DRAM_DQ(15 downto 8);
+                                    g_buf1(cnt3) <= DRAM_DQ(7 downto 0);
+
+                                elsif rd_cnt = 2 then
+                                    r_buf2(cnt3) <= DRAM_DQ(15 downto 8);
+                                    g_buf2(cnt3) <= DRAM_DQ(7 downto 0);
+
+                                elsif rd_cnt = 3 then
+                                    r_buf3(cnt3) <= DRAM_DQ(15 downto 8);
+                                    g_buf3(cnt3) <= DRAM_DQ(7 downto 0);
+
+                                end if;
+
+
+                                cnt3 := cnt3+1;
                             else
-                                
+
                                 rd   := rd+1;
                                 cnt3 := 0;
                             end if;
@@ -661,12 +670,12 @@ begin
                             if cnt2 < 9 then
                                 cnt2 := cnt2+1;
                             else
-												rd   := rd+1;
-												cnt2 := 0;
-										  
+                                rd   := rd+1;
+                                cnt2 := 0;
+
                             end if;
-									 
-								elsif rd = 7 then              --Bank Active (ACT) + row auf adresspin
+
+                        elsif rd = 7 then              --Bank Active (ACT) + row auf adresspin
                             iADDR <= std_logic_vector(to_unsigned(row, iADDR'length)); iBA <= std_logic_vector(to_unsigned((bank+1), iBA'length)); iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             --iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             rd := rd+1;
@@ -691,30 +700,31 @@ begin
                             else
                                 rd   := rd+1;
                                 cnt2 := 0;
-                                cnt3:=0;
+                                cnt3 := 0;
                             end if;
 
                         elsif rd = 11 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
                             if cnt3 < 256 then
-                              
-											if rd_cnt=0 then
-												b_buf0(cnt3)<=DRAM_DQ(15 downto 8);
-												--b_buf0(cnt3)<=x"00";
-											elsif rd_cnt=1 then
-												b_buf1(cnt3)<=DRAM_DQ(15 downto 8);
-												--b_buf1(cnt3)<=x"00";
-											ELSIF rd_cnt = 2 then	
-												b_buf2(cnt3)<=DRAM_DQ(15 downto 8);
-												--b_buf2(cnt3)<=x"00";
-											ELSIF rd_cnt = 3 then	
-												b_buf3(cnt3)<=DRAM_DQ(15 downto 8);
-												--b_buf3(cnt3)<=x"00";
-											end if;
-										
-											
-											cnt3 := cnt3+1;
+
+                                if rd_cnt = 0 then
+                                    b_buf0(cnt3) <= DRAM_DQ(15 downto 8);
+
+                                elsif rd_cnt = 1 then
+                                    b_buf1(cnt3) <= DRAM_DQ(15 downto 8);
+
+                                elsif rd_cnt = 2 then
+                                    b_buf2(cnt3) <= DRAM_DQ(15 downto 8);
+
+                                elsif rd_cnt = 3 then
+                                    b_buf3(cnt3) <= DRAM_DQ(15 downto 8);
+
+                                end if;
+
+
+                                cnt3 := cnt3+1;
                             else
-                                
+
+
                                 rd   := rd+1;
                                 cnt3 := 0;
                             end if;
@@ -729,45 +739,45 @@ begin
                             if cnt2 < 2 then
                                 cnt2 := cnt2+1;
                             else
-												rd_cnt := rd_cnt+1;
-												row    := row+1;
-												if row > 3071 then
-													row := 0;
-												end if;
-												rd   := 0;
-												cnt2 := 0;
-										  
+                                rd_cnt := rd_cnt+1;
+                                row    := row+1;
+                                if row > 3071 then
+                                    row := 0;
+                                end if;
+                                rd   := 0;
+                                cnt2 := 0;
+
                             end if;
                         else
                             rd := 0;
                         end if;
 
                     else
-                        
-								bf_y:=bf_y+1;
-								if bf_y>767 then
-									bf_y:=0;
-								end if;
-								buf_y<=std_LOGIC_VECTOR(to_unsigned(bf_y, buf_y'length));
-								
-								
+
+                        bf_y := bf_y+1;
+                        if bf_y > 767 then
+                            bf_y := 0;
+                        end if;
+                        buf_y <= std_LOGIC_VECTOR(to_unsigned(bf_y, buf_y'length));
+
+
 
                         rd_cnt := 0;
                         rd_done <= '1';                                             --wieder in den Zustand s_ram_idle versetzen
-								
+
                     end if;
 
 
-					 --#######################################################################################################################
-					 -- s_brightness #########################################################################################################
-					 -- veraendert jeden Farbkanal um den uebergebenen Wert ##################################################################
-					 --#######################################################################################################################
-					 when s_brightness=>
-					dbg_refresh_int:=dbg_refresh_int+1;
-					 if brgt_cnt<3072 then
-								if br = 0 then              --Bank Active (ACT) + brgt_cnt auf adresspin
-									 DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
-                            iADDR <= std_logic_vector(to_unsigned(brgt_cnt, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                     --#######################################################################################################################
+                     -- s_brightness #########################################################################################################
+                     -- veraendert jeden Farbkanal um den uebergebenen Wert ##################################################################
+                     --#######################################################################################################################
+                when s_brightness =>
+                    dbg_refresh_int := dbg_refresh_int+1;
+                    if brgt_cnt < 3072 then
+                        if br = 0 then              --Bank Active (ACT) + brgt_cnt auf adresspin
+                            DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
+                            iADDR   <= std_logic_vector(to_unsigned(brgt_cnt, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             br := br+1;
 
                         elsif br = 1 then           --tRCD
@@ -790,16 +800,17 @@ begin
                             else
                                 br   := br+1;
                                 cnt2 := 0;
-                                cnt3 :=0;
+                                cnt3 := 0;
                             end if;
 
                         elsif br = 4 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
                             if cnt3 < 256 then
-                              
-											rg_process(cnt3)<=DRAM_DQ;
-											cnt3 := cnt3+1;
+                                ram5.we     <= '1';
+                                ram5.data_r <= DRAM_DQ(15 downto 8);
+                                ram5.data_g <= DRAM_DQ(7 downto 0);
+                                cnt3 := cnt3+1;
                             else
-                                
+                                ram5.we <= '0';
                                 br   := br+1;
                                 cnt3 := 0;
                             end if;
@@ -814,12 +825,12 @@ begin
                             if cnt2 < 9 then
                                 cnt2 := cnt2+1;
                             else
-												br   := br+1;
-												cnt2 := 0;
-										  
+                                br   := br+1;
+                                cnt2 := 0;
+
                             end if;
-									 
-								elsif br = 7 then              --Bank Active (ACT) + row auf adresspin
+
+                        elsif br = 7 then              --Bank Active (ACT) + row auf adresspin
                             iADDR <= std_logic_vector(to_unsigned(brgt_cnt, iADDR'length)); iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             br := br+1;
 
@@ -843,17 +854,16 @@ begin
                             else
                                 br   := br+1;
                                 cnt2 := 0;
-                                cnt3:=0;
+                                cnt3 := 0;
                             end if;
 
                         elsif br = 11 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
                             if cnt3 < 256 then
-                              
-											b_process(cnt3)<=DRAM_DQ(15 downto 8);
-											
-											cnt3 := cnt3+1;
+                                ram5.we     <= '1';
+                                ram5.data_b <= DRAM_DQ(15 downto 8);
+                                cnt3 := cnt3+1;
                             else
-                                
+                                ram5.we <= '0';
                                 br   := br+1;
                                 cnt3 := 0;
                             end if;
@@ -868,141 +878,145 @@ begin
                             if cnt2 < 2 then
                                 cnt2 := cnt2+1;
                             else
-											br   := br+1;
-											cnt2 := 0;
-										  
+                                br   := br+1;
+                                cnt2 := 0;
+
                             end if;
-									 
-								elsif br=14 then
-									if i<256 then
-										i := 256;
-										--rg_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 16));
-										--b_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 8));
-										i:=i+1;
-									else
-										br:=br+1;
-										i:=0;
-									end if;
-								elsif br=15 then		--bank active
-									iADDR <= std_LOGIC_VECTOR(to_unsigned((brgt_cnt), iADDR'length)); iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
-									br := br+1;
 
-								elsif br = 16 then       --tRCD
-									iCS <= '1';
-									if cnt2 < 2 then
-										cnt2 := cnt2+1;
-									else
-										cnt2 := 0;
-										br   := br+1;
-									end if;
+                        elsif br = 14 then
+                            if i < 256 then
+                                i := 256;
+                                        --rg_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 16));
+                                        --b_process(i)<=std_LOGIC_VECTOR(to_unsigned(i, 8));
+                                i := i+1;
+                            else
+                                br := br+1;
+                                i  := 0;
+                            end if;
+                        elsif br = 15 then        --bank active
+                            iADDR <= std_LOGIC_VECTOR(to_unsigned((brgt_cnt), iADDR'length)); iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            br := br+1;
 
-								elsif br = 17 then       --write
-									iADDR   <= "0000000000000"; iBA <= "10"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-									DRAM_DQ <= rg_process(cnt3);
-									cnt3 := cnt3+1;
-									br   := br+1;
+                        elsif br = 16 then       --tRCD
+                            iCS <= '1';
+                            if cnt2 < 2 then
+                                cnt2 := cnt2+1;
+                            else
+                                cnt2 := 0;
+                                br   := br+1;
+                            end if;
 
-                   
-                        
-								elsif br = 18 then       --write die restlichen 255 words
-									iCS <= '1';
-									if cnt3 < 256 then
-										DRAM_DQ <= rg_process(cnt3);
-										cnt3 := cnt3+1;
-									else
-										iRAS<='1'; iCAS<='1'; iWE<='0'; iCS<='0';   --burststop
-										cnt3 := 0;
-										br   := br+1;
-									end if;
-
-								elsif br = 19 then       --tRDL
-									iCS<='1';
-									if cnt3 < 1 then
-										cnt3 := cnt3+1;
-									else
-										cnt3 := 0;
-										br   := br+1;
-									end if;
-
-								elsif br = 20 then       --precharge
-									iADDR <= "0010000000000"; iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
-									br := br+1;
-
-								elsif br = 21 then       --tRP
-									iCS <= '1';
-									if cnt2 < 9 then
-										cnt2 := cnt2+1;
-									else
-										cnt2 := 0;
-										br   := br+1;
-									 
-									end if;
-
-								elsif br = 22 then          --bank active
-									iADDR <= std_LOGIC_VECTOR(to_unsigned((brgt_cnt), iADDR'length)); iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
-									br := br+1;
-
-								elsif br = 23 then       --tRCD
-									iCS <= '1';
-									if cnt2 < 2 then
-                            cnt2 := cnt2+1;
-									else
-                           
-                            cnt2 := 0;
-                            br   := br+1;
-									end if;
-
-								elsif br = 24 then       --write
-									iADDR   <= "0000000000000"; iBA <= "11"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-									DRAM_DQ <= b_process(cnt3)&x"00";
-									cnt3 := cnt3+1;
-									br   := br+1;
-
-								elsif br = 25 then       --write die restlichen 255 words
-									iCS <= '1';
-									if cnt3 < 256 then
-										DRAM_DQ <= b_process(cnt3)&x"00";
-										cnt3 := cnt3+1;
-									else
-										iRAS<='1'; iCAS<='1'; iWE<='0'; iCS<='0';   --burststop
-										cnt3 := 0;
-										br   := br+1;
-									end if;
-
-								elsif br = 26 then       --tRDL
-									iCS<='1';
-									if cnt3 < 1 then
+                        elsif br = 17 then       --write
+                            iADDR     <= "0000000000000"; iBA <= "10"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
+                            ram5.addr <= cnt3;
+                            DRAM_DQ   <= ram5.q_r & ram5.q_g;
                             cnt3 := cnt3+1;
-									else
-                            cnt3 := 0;
                             br   := br+1;
-									end if;
 
-								elsif br = 27 then       --precharge
-									iADDR <= "0010000000000"; iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
-									br := br+1;
 
-								elsif br = 28 then       --tRP
-									iCS <= '1';
-									if cnt2 < 2 then
-                            cnt2 := cnt2+1;
-									else
-										dbg_refresh_cyc <= std_LOGIC_VECTOR(to_unsigned(dbg_refresh_int, 16));
-										dbg_refresh_int:=0;
-										brgt_cnt := brgt_cnt +1;
-										cnt2 := 0;
-										br   := 0;
-									 
-									end if;
-								
-								else
-                           br := 0;
-								end if;
-						else
-							brightness<='1';
-							bank:=2;
-						end if;
-					 
+
+                        elsif br = 18 then       --write die restlichen 255 words
+                            iCS <= '1';
+                            if cnt3 < 256 then
+                                ram5.addr <= cnt3;
+                                DRAM_DQ   <= ram5.q_r & ram5.q_g;
+                                cnt3 := cnt3+1;
+                            else
+                                iRAS <= '1'; iCAS <= '1'; iWE <= '0'; iCS <= '0';   --burststop
+                                cnt3 := 0;
+                                br   := br+1;
+                            end if;
+
+                        elsif br = 19 then       --tRDL
+                            iCS <= '1';
+                            if cnt3 < 1 then
+                                cnt3 := cnt3+1;
+                            else
+                                cnt3 := 0;
+                                br   := br+1;
+                            end if;
+
+                        elsif br = 20 then       --precharge
+                            iADDR <= "0010000000000"; iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+                            br := br+1;
+
+                        elsif br = 21 then       --tRP
+                            iCS <= '1';
+                            if cnt2 < 9 then
+                                cnt2 := cnt2+1;
+                            else
+                                cnt2 := 0;
+                                br   := br+1;
+
+                            end if;
+
+                        elsif br = 22 then          --bank active
+                            iADDR <= std_LOGIC_VECTOR(to_unsigned((brgt_cnt), iADDR'length)); iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            br := br+1;
+
+                        elsif br = 23 then       --tRCD
+                            iCS <= '1';
+                            if cnt2 < 2 then
+                                cnt2 := cnt2+1;
+                            else
+
+                                cnt2 := 0;
+                                br   := br+1;
+                            end if;
+
+                        elsif br = 24 then       --write
+                            iADDR     <= "0000000000000"; iBA <= "11"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
+                            ram5.addr <= cnt3;
+                            DRAM_DQ   <= ram5.q_b & x"00";
+                            cnt3 := cnt3+1;
+                            br   := br+1;
+
+                        elsif br = 25 then       --write die restlichen 255 words
+                            iCS <= '1';
+                            if cnt3 < 256 then
+                                ram5.addr <= cnt3;
+                                DRAM_DQ   <= ram5.q_b & x"00";
+                                cnt3 := cnt3+1;
+                            else
+                                iRAS <= '1'; iCAS <= '1'; iWE <= '0'; iCS <= '0';   --burststop
+                                cnt3 := 0;
+                                br   := br+1;
+                            end if;
+
+                        elsif br = 26 then       --tRDL
+                            iCS <= '1';
+                            if cnt3 < 1 then
+                                cnt3 := cnt3+1;
+                            else
+                                cnt3 := 0;
+                                br   := br+1;
+                            end if;
+
+                        elsif br = 27 then       --precharge
+                            iADDR <= "0010000000000"; iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+                            br := br+1;
+
+                        elsif br = 28 then       --tRP
+                            iCS <= '1';
+                            if cnt2 < 2 then
+                                cnt2 := cnt2+1;
+                            else
+                                dbg_refresh_cyc <= std_LOGIC_VECTOR(to_unsigned(dbg_refresh_int, 16));
+                                dbg_refresh_int := 0;
+                                brgt_cnt        := brgt_cnt +1;
+                                cnt2            := 0;
+                                br              := 0;
+
+                            end if;
+
+                        else
+                            br := 0;
+                        end if;
+                    else
+                        brightness <= '1';
+                        bank := 2;
+                    end if;
+
                 when others =>
                     null;
             end case;
@@ -1022,7 +1036,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    VGA_out : process (clk, reset, current_state, ipixel, Hcnt, Vcnt, buf_y, rg_buf0, rg_buf1, rg_buf2, rg_buf3, b_buf0, b_buf1, b_buf2, b_buf3)
+    VGA_out : process (clk, reset, current_state, ipixel, Hcnt, Vcnt, buf_y, r_buf0, r_buf1, r_buf2, r_buf3, g_buf0, g_buf1, g_buf2, g_buf3, b_buf0, b_buf1, b_buf2, b_buf3)
 
         variable pic_x : integer range 0 to 2045 := 0;
 
@@ -1038,37 +1052,38 @@ begin
                     ipixel <= x"FFFFFF";
 
                 when s_wait_for_com =>
-                    
-						  pic_x := to_integer(unsigned(Hcnt(10 downto 0)));
 
-					
-							if pic_x<256 then
-								ipixel<=rg_buf0(pic_x)&b_buf0(pic_x);
-							elsif pic_x>255 and pic_x<512 then
-								ipixel<=rg_buf1(pic_x-256)&b_buf1(pic_x-256);
-						   elsif pic_x>511 and pic_x<768 then
-								ipixel<=rg_buf2(pic_x-512)&b_buf2(pic_x-512);
-							else
-								ipixel<=rg_buf3(pic_x-768)&b_buf3(pic_x-768);
-							end if;		                    
+                    pic_x := to_integer(unsigned(Hcnt(10 downto 0)));
+
+                    if pic_x < 256 then
+                        ipixel <= r_buf0(pic_x) & g_buf0(pic_x) & b_buf0(pic_x);
+                    elsif pic_x > 255 and pic_x < 512 then
+                        ipixel <= r_buf1(pic_x-256) & g_buf1(pic_x-256) & b_buf1(pic_x-256);
+                    elsif pic_x > 511 and pic_x < 768 then
+                        ipixel <= r_buf2(pic_x-512) & g_buf2(pic_x-512) & b_buf2(pic_x-512);
+                    else
+                        ipixel <= r_buf3(pic_x-768) & g_buf3(pic_x-768) & b_buf3(pic_x-768);
+                    end if;
 
 
                 when s_ram_rd =>
                     pic_x := to_integer(unsigned(Hcnt(10 downto 0)));
-							
-							if pic_x<256 then
-								ipixel<=rg_buf0(pic_x)&b_buf0(pic_x);
-							elsif pic_x>255 and pic_x<512 then
-								ipixel<=rg_buf1(pic_x-256)&b_buf1(pic_x-256);
-						   elsif pic_x>511 and pic_x<768 then
-								ipixel<=rg_buf2(pic_x-512)&b_buf2(pic_x-512);
-							else
-								ipixel<=rg_buf3(pic_x-768)&b_buf3(pic_x-768);
-							end if;
-						
-					 when s_brightness =>
-						ipixel<=x"00FFFF";
-						
+
+                    if pic_x < 256 then
+                        ipixel <= r_buf0(pic_x) & g_buf0(pic_x) & b_buf0(pic_x);
+                    elsif pic_x > 255 and pic_x < 512 then
+                        ipixel <= r_buf1(pic_x-256) & g_buf1(pic_x-256) & b_buf1(pic_x-256);
+                    elsif pic_x > 511 and pic_x < 768 then
+                        ipixel <= r_buf2(pic_x-512) & g_buf2(pic_x-512) & b_buf2(pic_x-512);
+                    else
+                        ipixel <= r_buf3(pic_x-768) & g_buf3(pic_x-768) & b_buf3(pic_x-768);
+                    end if;
+
+
+
+                when s_brightness =>
+                    ipixel <= x"00FFFF";
+
                 when others =>
                     null;
             end case;
