@@ -49,6 +49,39 @@ component single_port_ram
 		);
 end component single_port_ram;
 
+type t_dpram is record
+	raddr :  natural range 0 to 255;
+	waddr	:  natural range 0 to 255;
+	data_r:  std_logic_vector(7 downto 0);
+	data_g:  std_logic_vector(7 downto 0);
+	data_b:  std_logic_vector(7 downto 0);
+	we_r		:  std_logic;
+	we_g		:  std_logic;
+	we_b		:  std_logic;
+	q_r	:  std_logic_vector(7 downto 0);
+	q_g	:  std_logic_vector(7 downto 0);
+	q_B	:  std_logic_vector(7 downto 0);
+end record;
+
+component dual_port_ram is
+
+	generic 
+	(
+		DATA_WIDTH : natural := 8;
+		ADDR_WIDTH : natural := 8
+	);
+
+	port 
+	(
+		clk		: in std_logic;
+		raddr	: in natural range 0 to 2**ADDR_WIDTH - 1;
+		waddr	: in natural range 0 to 2**ADDR_WIDTH - 1;
+		data	: in std_logic_vector((DATA_WIDTH-1) downto 0);
+		we		: in std_logic := '1';
+		q		: out std_logic_vector((DATA_WIDTH -1) downto 0)
+	);
+
+end component dual_port_ram;
 
 --###########################################################################
 --constants
@@ -64,6 +97,20 @@ constant c_cram_empty : t_cram := (
     q_r     => (others => '0'),
     q_g     => (others => '0'),
     q_B     => (others => '0')
+);
+
+constant c_dpram_empty : t_dpram := (
+	raddr 	=> 0,
+	waddr		=> 0,
+	data_r	=> (others => '0'),
+	data_g	=> (others => '0'),
+	data_b	=> (others => '0'),
+	we_r			=> '0',
+	we_g			=> '0',
+	we_b			=> '0',
+	q_r		=> (others => '0'),
+	q_g		=> (others => '0'),
+	q_B		=> (others => '0')
 );
 
 
