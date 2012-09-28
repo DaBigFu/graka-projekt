@@ -134,9 +134,21 @@ function get_rx_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) retu
 
 function capped_add_8(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned;
 
+function hist_stretch_calc(g : unsigned(7 downto 0); g_min : unsigned(7 downto 0); g_max : unsigned(7 downto 0)) return unsigned;
+
 end package graka_pack;
 
 package body graka_pack is
+
+function hist_stretch_calc(g : unsigned(7 downto 0); g_min : unsigned(7 downto 0); g_max : unsigned(7 downto 0)) return unsigned is
+	variable gi : signed(9 downto 0) := ("00" & g);
+	variable gi_min : signed(9 downto 0) := ("00" & g_min);
+	variable gi_max : signed(9 downto 0) := ("00" & g_max);
+	variable erg : signed(11 downto 0);
+	begin
+		erg := 255*((g-g_min)/(g_max - g_min));
+		return unsigned(erg);
+end function hist_stretch_calc;
 
 function capped_add_8(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned is
 	--adds / subtracts sum2 from unsigned sum1, returns result in 0...255 range.
