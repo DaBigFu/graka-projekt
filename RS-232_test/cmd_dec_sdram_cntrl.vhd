@@ -96,9 +96,7 @@ begin
     ram_comp_16 : single_port_ram generic map(8, 8) port map(clk, ram5.addr, ram5.data_g, ram5.we_g, ram5.q_g);
     ram_comp_17 : single_port_ram generic map(8, 8) port map(clk, ram5.addr, ram5.data_b, ram5.we_b, ram5.q_b);
 	 
-	 lut_cont_r : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr, filter_set.cont_ram.data_r, filter_set.cont_ram.we_r, filter_set.cont_ram.q_r);
-    lut_cont_g : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr, filter_set.cont_ram.data_g, filter_set.cont_ram.we_g, filter_set.cont_ram.q_g);
-    lut_cont_b : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr, filter_set.cont_ram.data_b, filter_set.cont_ram.we_b, filter_set.cont_ram.q_b);
+	 lut_cont : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr, filter_set.cont_ram.data, filter_set.cont_ram.we, filter_set.cont_ram.q);
 
     dbg_byte_count <= pixel_counter;
     dbg_page_count <= page_counter;
@@ -1111,11 +1109,11 @@ begin
 							elsif cont_rec = 2 then
 							   --min and max values recieved, calculating LUT
 							   filter_set.cont_ram.addr <= cont_lut_addr;
-								filter_set.cont_ram.data <= std_logic_vector(hist_stretch_calc(unsigned(cont_lut_addr), unsigned(filter_set.cont_g_min), unsigned(filter_set.cont_g_max)));
+								filter_set.cont_ram.data <= std_logic_vector(hist_stretch_calc(to_unsigned(cont_lut_addr, 8), unsigned(filter_set.cont_g_min), unsigned(filter_set.cont_g_max)));
 								cont_lut_addr := cont_lut_addr + 1;
 							elsif cont_lut_addr = 256 then
 								--calculation done, moving on
-							   filter_set.status := '1';
+							   filter_set.status <= '1';
 								cont_rec := 0;
 							end if;
 							

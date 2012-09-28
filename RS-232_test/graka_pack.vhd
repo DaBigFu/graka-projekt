@@ -36,12 +36,19 @@ type t_cram is record
 	q_B	:  std_logic_vector(7 downto 0);
 end record;
 
+type t_lut is record
+	addr	:  natural range 0 to 255;
+	data:  std_logic_vector(7 downto 0);
+	we		:  std_logic;
+	q	:  std_logic_vector(7 downto 0);
+end record;
+
 type t_filter_set is record
-		move_hist : signed(7 downto 0);
-		cont_ram  : t_cram;
+		move_hist  : signed(7 downto 0);
+		cont_ram   : t_lut;
 		cont_g_min : unsigned(7 downto 0);
 		cont_g_max : unsigned(7 downto 0);
-		status	 : std_logic;
+		status	  : std_logic;
 end record;
 
 component single_port_ram
@@ -112,6 +119,13 @@ constant c_cram_empty : t_cram := (
     q_B     => (others => '0')
 );
 
+constant c_lut_empty : t_lut := (
+    addr    => 0,
+    data  => (others => '0'),
+	 we			=> '0',
+    q     => (others => '0')
+);
+
 constant c_dpram_empty : t_dpram := (
 	raddr 	=> 0,
 	waddr		=> 0,
@@ -129,8 +143,8 @@ constant c_dpram_empty : t_dpram := (
 
 
 constant c_filter_set_empty : t_filter_set := (
-	move_hist => x"9C",
-	cont_ram => c_cram_empty,
+	move_hist => x"00",
+	cont_ram => c_lut_empty,
 	cont_g_min => x"00",
 	cont_g_max => x"00",
 	status => '0'
