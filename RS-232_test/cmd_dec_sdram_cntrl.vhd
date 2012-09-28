@@ -35,7 +35,7 @@ end entity cmd_dec_sdram_cntrl;
 architecture beh of cmd_dec_sdram_cntrl is
 
     -- interne States
-    type states is (s_ram_init, s_ram_rd, s_ram_fullpagewrite, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic, s_brightness);
+    type states is (s_ram_init, s_ram_rd, s_ram_fullpagewrite, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic, s_brightness, s_write_cont_lut, s_cont);
     signal current_state, next_state : states;
 
     --interne Signale fuer Ausgangspins
@@ -95,6 +95,10 @@ begin
     ram_comp_15 : single_port_ram generic map(8, 8) port map(clk, ram5.addr, ram5.data_r, ram5.we_r, ram5.q_r);
     ram_comp_16 : single_port_ram generic map(8, 8) port map(clk, ram5.addr, ram5.data_g, ram5.we_g, ram5.q_g);
     ram_comp_17 : single_port_ram generic map(8, 8) port map(clk, ram5.addr, ram5.data_b, ram5.we_b, ram5.q_b);
+	 
+	 lut_cont_r : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr, filter_set.cont_ram.data_r, filter_set.cont_ram.we_r, filter_set.cont_ram.q_r);
+    lut_cont_g : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr, filter_set.cont_ram.data_g, filter_set.cont_ram.we_g, filter_set.cont_ram.q_g);
+    lut_cont_b : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr, filter_set.cont_ram.data_b, filter_set.cont_ram.we_b, filter_set.cont_ram.q_b);
 
     dbg_byte_count <= pixel_counter;
     dbg_page_count <= page_counter;
@@ -141,6 +145,8 @@ begin
                     next_state <= s_receive_pic;
 					 elsif rx_busy = '0' and rx_cmd = filter_move_hist and brightness = '0' then
                     next_state <= s_brightness;
+					 elsif rx_busy = '0' and rx_cmd = filter_spread_hist then
+                    next_state <= s_write_cont_lut;						  
                 elsif rd_req = '1' then
                     next_state <= s_ram_rd;
                 elsif dbg_switch = '1' and brightness = '0' then
@@ -148,6 +154,13 @@ begin
                 else
                     next_state <= s_wait_for_com;
                 end if;
+					 
+				when s_write_cont_lut =>
+					if filter_set.status = '1' then
+						next_state <= s_cont;
+					else
+						next_state <= s_write_cont_lut;
+					end if;
 
             when s_transmit_response =>
                 next_state <= s_wait_for_tx;
@@ -235,6 +248,8 @@ begin
         variable br                : integer range 0 to 31 := 0;
         variable i                 : integer range 0 to 511 := 0;
         variable bank              : integer range 0 to 3 := 0;
+		  variable cont_rec			  : integer range 0 to 3 := 0;
+		  variable cont_lut_addr	  : integer range 0 to 256 := 0;
 
           --variable received_pic_counter : integer range 0 to 7 := 0;
 
@@ -1078,7 +1093,32 @@ begin
                         bank := 2;
 								filter_set.status <= '0';
                     end if;
-
+						  
+					 when s_write_cont_lut =>
+						  --write look-up table for histogramm spreading in ram
+						  if rx_busy = '1' then
+                        rx_busy_last <= '1';
+                    elsif rx_busy = '0' and rx_busy_last = '1' then
+						      if cont_rec = 0 then
+									filter_set.cont_g_min <= unsigned(data_in);
+								elsif cont_rec = 1 then
+									filter_set.cont_g_max <= unsigned(data_in);
+								end if;
+								cont_rec := cont_rec + 1;
+								rx_busy_last <= '0';
+								cont_lut_addr := 0;
+							
+							elsif cont_rec = 2 then
+							   --min and max values recieved, calculating LUT
+							   filter_set.cont_ram.addr <= cont_lut_addr;
+								filter_set.cont_ram.data <= std_logic_vector(hist_stretch_calc(unsigned(cont_lut_addr), unsigned(filter_set.cont_g_min), unsigned(filter_set.cont_g_max)));
+								cont_lut_addr := cont_lut_addr + 1;
+							elsif cont_lut_addr = 256 then
+								--calculation done, moving on
+							   filter_set.status := '1';
+								cont_rec := 0;
+							end if;
+							
                 when others =>
                     null;
             end case;

@@ -22,7 +22,7 @@ function varargout = graka_gui(varargin)
 
 % Edit the above text to modify the response to help graka_gui
 
-% Last Modified by GUIDE v2.5 24-Sep-2012 17:10:50
+% Last Modified by GUIDE v2.5 28-Sep-2012 18:41:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -383,4 +383,59 @@ function pb_move_hist_Callback(hObject, eventdata, handles)
 handles.ser.write_uint8(17);
 handles.ser.write_sint8(str2double(get(handles.edit_hist_move,'String')));
 
+guidata(hObject, handles);
+
+
+
+function edit_cont_max_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_cont_max (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_cont_max as text
+%        str2double(get(hObject,'String')) returns contents of edit_cont_max as a double
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_cont_max_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_cont_max (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+guidata(hObject, handles);
+
+
+function edit_cont_min_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_cont_min (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_cont_min as text
+%        str2double(get(hObject,'String')) returns contents of edit_cont_min as a double
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit_cont_min_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_cont_min (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+guidata(hObject, handles);
+
+% --- Executes on button press in pb_cont.
+function pb_cont_Callback(hObject, eventdata, handles)
+% hObject    handle to pb_cont (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 guidata(hObject, handles);

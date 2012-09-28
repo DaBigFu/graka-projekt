@@ -1,8 +1,13 @@
 -- Christoph Paa
 
+
 LIBRARY ieee;
 USE ieee.std_logic_1164.all;
 USE ieee.numeric_std.all;
+
+
+
+
 
 package graka_pack is
 
@@ -12,16 +17,11 @@ constant c_COM_LENGTH : integer range 0 to 16 := 8;
 
 --###########################################################################
 --types
-type t_rx_com is (rec_pic, end_pic, check_com, filter_move_hist, unidentified);
+type t_rx_com is (rec_pic, end_pic, check_com, filter_move_hist, filter_spread_hist, unidentified);
 type t_tx_com is (board_ack, end_of_block, unidentified);
-type t_command_array is ARRAY(0 to 3) of std_logic_vector(c_COM_LENGTH-1 downto 0);
+type t_command_array is ARRAY(0 to 4) of std_logic_vector(c_COM_LENGTH-1 downto 0);
 type t_rec_buff_rg is ARRAY(0 to 255) of std_logic_vector(15 downto 0);
 type t_rec_buff_b is ARRAY(0 to 255) of std_logic_vector(7 downto 0);
-
-type t_filter_set is record
-		move_hist : signed(7 downto 0);
-		status	 : std_logic;
-end record;
 
 type t_cram is record
 	addr	:  natural range 0 to 255;
@@ -34,6 +34,14 @@ type t_cram is record
 	q_r	:  std_logic_vector(7 downto 0);
 	q_g	:  std_logic_vector(7 downto 0);
 	q_B	:  std_logic_vector(7 downto 0);
+end record;
+
+type t_filter_set is record
+		move_hist : signed(7 downto 0);
+		cont_ram  : t_cram;
+		cont_g_min : unsigned(7 downto 0);
+		cont_g_max : unsigned(7 downto 0);
+		status	 : std_logic;
 end record;
 
 component single_port_ram
@@ -88,17 +96,17 @@ end component dual_port_ram;
 
 --###########################################################################
 --constants
-constant c_rx_com_arr : t_command_array := (x"02", x"03",x"05", x"11");
-constant c_tx_com_arr : t_command_array := (x"06", x"17",x"00", x"00");
+constant c_rx_com_arr : t_command_array := (x"02", x"03",x"05", x"11", x"12");
+constant c_tx_com_arr : t_command_array := (x"06", x"17",x"00", x"00", x"00");
 
 constant c_cram_empty : t_cram := (
     addr    => 0,
     data_r  => (others => '0'),
     data_g  => (others => '0'),
     data_b  => (others => '0'),
-	we_r			=> '0',
-	we_g			=> '0',
-	we_b			=> '0',
+	 we_r			=> '0',
+	 we_g			=> '0',
+	 we_b			=> '0',
     q_r     => (others => '0'),
     q_g     => (others => '0'),
     q_B     => (others => '0')
@@ -122,6 +130,9 @@ constant c_dpram_empty : t_dpram := (
 
 constant c_filter_set_empty : t_filter_set := (
 	move_hist => x"9C",
+	cont_ram => c_cram_empty,
+	cont_g_min => x"00",
+	cont_g_max => x"00",
 	status => '0'
 );
 
@@ -141,13 +152,28 @@ end package graka_pack;
 package body graka_pack is
 
 function hist_stretch_calc(g : unsigned(7 downto 0); g_min : unsigned(7 downto 0); g_max : unsigned(7 downto 0)) return unsigned is
-	variable gi : signed(9 downto 0) := ("00" & g);
-	variable gi_min : signed(9 downto 0) := ("00" & g_min);
-	variable gi_max : signed(9 downto 0) := ("00" & g_max);
-	variable erg : signed(11 downto 0);
+	variable gi : signed(9 downto 0);
+	variable gi_min : signed(9 downto 0);
+	variable gi_max : signed(9 downto 0);
+	variable erg : signed(17 downto 0);
+	
+	variable div1 : signed(17 downto 0);
+	variable div2 : signed(17 downto 0);
 	begin
-		erg := 255*((g-g_min)/(g_max - g_min));
-		return unsigned(erg);
+		gi := signed("00" & g);
+		gi_min := signed("00" & g_min);
+		gi_max := signed("00" & g_max);
+		
+		if gi >= gi_min then
+			div1 := signed((gi - gi_min) & "00000000");
+			div2 := signed("00000000" & (gi_max - gi_min));
+			erg := div1 / div2;
+			return unsigned(erg(7 downto 0));
+		else
+			--return 0
+			return to_unsigned(0, 8);
+		end if;
+		--return unsigned(erg(7 downto 0));
 end function hist_stretch_calc;
 
 function capped_add_8(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned is
@@ -180,6 +206,8 @@ function get_rx_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) retu
 				return t_rx_com'VAL(2);
 			when c_rx_com_arr(3) =>
 				return t_rx_com'VAL(3);
+			when c_rx_com_arr(4) =>
+				return t_rx_com'VAL(4);
 			when others =>
 				return t_rx_com'right;
 		end case;
