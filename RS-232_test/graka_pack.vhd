@@ -27,7 +27,9 @@ type t_cram is record
 	data_r:  std_logic_vector(7 downto 0);
 	data_g:  std_logic_vector(7 downto 0);
 	data_b:  std_logic_vector(7 downto 0);
-	we		:  std_logic;
+	we_r		:  std_logic;
+	we_g		:  std_logic;
+	we_b		:  std_logic;
 	q_r	:  std_logic_vector(7 downto 0);
 	q_g	:  std_logic_vector(7 downto 0);
 	q_B	:  std_logic_vector(7 downto 0);
@@ -93,7 +95,9 @@ constant c_cram_empty : t_cram := (
     data_r  => (others => '0'),
     data_g  => (others => '0'),
     data_b  => (others => '0'),
-    we      => '0',
+	we_r			=> '0',
+	we_g			=> '0',
+	we_b			=> '0',
     q_r     => (others => '0'),
     q_g     => (others => '0'),
     q_B     => (others => '0')
