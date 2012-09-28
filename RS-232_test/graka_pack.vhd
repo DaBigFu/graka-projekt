@@ -20,6 +20,7 @@ type t_rec_buff_b is ARRAY(0 to 255) of std_logic_vector(7 downto 0);
 
 type t_filter_set is record
 		move_hist : signed(7 downto 0);
+		status	 : std_logic;
 end record;
 
 type t_cram is record
@@ -120,7 +121,8 @@ constant c_dpram_empty : t_dpram := (
 
 
 constant c_filter_set_empty : t_filter_set := (
-	move_hist => x"64"
+	move_hist => x"9C",
+	status => '0'
 );
 
 

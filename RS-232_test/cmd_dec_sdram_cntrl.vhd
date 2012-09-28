@@ -38,7 +38,7 @@ architecture beh of cmd_dec_sdram_cntrl is
     type states is (s_ram_init, s_ram_rd, s_ram_fullpagewrite, s_wait_for_com, s_transmit_response, s_wait_for_tx, s_receive_pic, s_brightness);
     signal current_state, next_state : states;
 
-     --interne Signale fuer Ausgangspins
+    --interne Signale fuer Ausgangspins
     --signal   iDQ                   : STD_LOGIC_VECTOR(15 downto 0) := "ZZZZZZZZZZZZZZZZ";
     signal   iADDR                 : STD_LOGIC_VECTOR(12 downto 0) := "0000000000000";
     signal   iBA, iDQM             : STD_LOGIC_VECTOR(1 downto 0) := "00";
@@ -106,6 +106,7 @@ begin
         x"4" when s_transmit_response,
         x"5" when s_wait_for_tx,
         x"8" when s_ram_rd,
+		  x"8" when s_brightness,
         x"F" when others;
 
     --------------------------------------------------------------------
@@ -138,6 +139,8 @@ begin
                     next_state <= s_transmit_response;
                 elsif rx_busy = '0' and rx_cmd = rec_pic then
                     next_state <= s_receive_pic;
+					 elsif rx_busy = '0' and rx_cmd = filter_move_hist and brightness = '0' then
+                    next_state <= s_brightness;
                 elsif rd_req = '1' then
                     next_state <= s_ram_rd;
                 elsif dbg_switch = '1' and brightness = '0' then
@@ -792,7 +795,13 @@ begin
                      --#######################################################################################################################
                 when s_brightness =>
                     dbg_refresh_int := dbg_refresh_int+1;
-                    if brgt_cnt < 3072 then
+						  if rx_busy = '1' then
+                        rx_busy_last <= '1';
+                    elsif rx_busy = '0' and rx_busy_last = '1' then
+							   filter_set.move_hist <= signed(data_in);
+								filter_set.status <= '1';
+								rx_busy_last <= '0';
+                    elsif brgt_cnt < 3072 and filter_set.status = '1' then
                         if br = 0 then              --Bank Active (ACT) + brgt_cnt auf adresspin
                             DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
                             iADDR   <= std_logic_vector(to_unsigned(brgt_cnt, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
@@ -1064,9 +1073,10 @@ begin
                         else
                             br := 0;
                         end if;
-                    else
+                    elsif filter_set.status = '1' then
                         brightness <= '1';
                         bank := 2;
+								filter_set.status <= '0';
                     end if;
 
                 when others =>
