@@ -59,6 +59,7 @@ guidata(hObject, handles);
 handles.dbg_gui = dbg_gui(hObject);
 set(handles.dbg_gui, 'Visible', 'off');
 set( get(handles.write_file_panel, 'children'), 'enable', 'off');
+update_gui(handles);
 % Update handles structure
 guidata(hObject, handles);
 
