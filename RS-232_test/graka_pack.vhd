@@ -186,10 +186,8 @@ function hist_stretch_calc(g : unsigned(7 downto 0); g_min : unsigned(7 downto 0
 			erg := div1 / div2;
 			return unsigned(erg(7 downto 0));
 		else
-			--return 0
 			return to_unsigned(0, 8);
 		end if;
-		--return unsigned(erg(7 downto 0));
 end function hist_stretch_calc;
 
 function capped_add_8(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned is
