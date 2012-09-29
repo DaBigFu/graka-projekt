@@ -360,6 +360,11 @@ function edit_hist_move_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of edit_hist_move as text
 %        str2double(get(hObject,'String')) returns contents of edit_hist_move as a double
+if str2double(get(hObject,'String')) > 127
+    set(hObject, 'String', '127');
+elseif str2double(get(hObject,'String')) < -128
+    set(hObject, 'String', '-128');
+end
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -394,6 +399,11 @@ function edit_cont_max_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of edit_cont_max as text
 %        str2double(get(hObject,'String')) returns contents of edit_cont_max as a double
+if str2double(get(hObject,'String')) > 255
+    set(hObject, 'String', '255');
+elseif str2double(get(hObject,'String')) < 0
+    set(hObject, 'String', '0');
+end
 guidata(hObject, handles);
 
 
@@ -418,6 +428,11 @@ function edit_cont_min_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of edit_cont_min as text
 %        str2double(get(hObject,'String')) returns contents of edit_cont_min as a double
+if str2double(get(hObject,'String')) > 255
+    set(hObject, 'String', '255');
+elseif str2double(get(hObject,'String')) < 0
+    set(hObject, 'String', '0');
+end
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -438,4 +453,7 @@ function pb_cont_Callback(hObject, eventdata, handles)
 % hObject    handle to pb_cont (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles.ser.write_uint8(18);
+handles.ser.write_uint8(str2double(get(handles.edit_cont_min,'String')));
+handles.ser.write_uint8(str2double(get(handles.edit_cont_max,'String')));
 guidata(hObject, handles);

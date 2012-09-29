@@ -109,6 +109,8 @@ begin
         x"5" when s_wait_for_tx,
         x"8" when s_ram_rd,
 		  x"8" when s_brightness,
+		  x"9" when s_write_cont_lut,
+		  x"a" when s_cont,
         x"F" when others;
 
     --------------------------------------------------------------------

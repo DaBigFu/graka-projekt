@@ -178,7 +178,9 @@ function hist_stretch_calc(g : unsigned(7 downto 0); g_min : unsigned(7 downto 0
 		gi_min := signed("00" & g_min);
 		gi_max := signed("00" & g_max);
 		
-		if gi >= gi_min then
+		if gi > gi_max then
+			return to_unsigned(255,8);
+		elsif gi > gi_min then
 			div1 := signed((gi - gi_min) & "00000000");
 			div2 := signed("00000000" & (gi_max - gi_min));
 			erg := div1 / div2;
