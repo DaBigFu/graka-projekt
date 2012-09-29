@@ -1124,8 +1124,10 @@ begin
 								cont_rec := 0;
 								cont_lut_addr := 0;
 								cont_lut_cnt := 0;
+								filter_set.cont_ram.we <= '0';
 							
 							elsif cont_rec = 2 then
+								filter_set.cont_ram.we <= '1';
 							   --min and max values recieved, calculating LUT
 							   filter_set.cont_ram.addr <= cont_lut_addr;
 								if cont_lut_cnt < 5 then
@@ -1269,6 +1271,11 @@ begin
 										filter_set.cont_ram.addr <= to_integer(unsigned(ram5.q_r));
 										ram5.addr <= i;
 										cont_lut_cnt := cont_lut_cnt + 1;
+									elsif i = 256 then
+										br := br +1;
+										ram1.we_r <= '0';
+										ram1.we_g <= '0';
+										ram1.we_b <= '0';
 									elsif cont_lut_cnt < 2 then
 										cont_lut_cnt := cont_lut_cnt + 1;
 									elsif cont_lut_cnt = 2 then
