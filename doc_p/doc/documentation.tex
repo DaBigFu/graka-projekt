@@ -1,0 +1,409 @@
+%%%%%%%%%%%%% Klassen-Optionen
+\documentclass[%
+  paper=A4, % Stellt auf A4-Papier ein
+  pagesize, % Diese Option reicht die Papiergröße an
+  12pt,
+            % alle Ausgabeformate weiter
+  ngerman   % Neue Rechtschreibung, d.\,h. (Silbentrennung)
+]{scrreprt}  % scrbook Eine Klasse für beidseitige Texte mit Kapiteln 
+            %
+%%%%%%%%%%%%% Unverzichtbare Pakte
+\usepackage[T1]{fontenc}% fontenc und inputenc ermöglichen
+\usepackage[utf8]{inputenc}% Silbentrennung und
+                             % Eingabe von Umlauten.
+\usepackage{% Man kann auch mehrere Pakete ohne Optionen
+            % in einen \usepackage-Befehl packen.
+  amsmath
+  %fixltx2e  % Verbessert einige Kernkompetenzen von LaTeX2e
+}
+\renewcommand{\baselinestretch}{1.50}\normalsize
+
+\usepackage{url}
+\usepackage[ngerman]{babel}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{graphicx}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\graphicspath{{./pic/}}
+            %
+%%%%%%%%%%%%% Typografisch empfehlenswerte Pakete
+\usepackage{% 
+  ellipsis, % Korrigiert den Weißraum um Auslassungspunkte
+  ragged2e, % Ermöglicht Flattersatz mit Silbentrennung
+ marginnote,% Für bessere Randnotizen mit \marginnote statt
+            % \marginline
+}
+\usepackage[tracking=true]{microtype}%
+            % Microtype ist einfach super, aber lesen Sie
+            % unbedingt die Anleitung um das Folgende zu
+            % verstehen.
+\DeclareMicrotypeSet*[tracking]{my}% 
+  { font = */*/*/sc/* }% 
+\SetTracking{ encoding = *, shape = sc }{ 45 }% Hier wird festgelegt,
+            % dass alle Passagen in Kapitälchen automatisch leicht
+            % gesperrt werden. Das Paket soul, das ich früher empfohlen
+            % habe ist damit für diese Zwecke nicht mehr nötig.
+            %
+%%%%%%%%%%%%% Verschiedene Schriften, die ich nutze:
+            % Es ist natürlich nicht sinnvoll mehrere Pakete zu
+            % laden, die immer wieder die Serifenschrift umstellen.
+            % Suchen Sie /eine/ aus und löschen Sie das erste
+            % Prozent-Zeichen in der Zeile A) oder B) oder ...  
+\usepackage{%
+%  lmodern, % A) Latin Modern Fonts sind die Nachfolger von Computer
+            % Modern, den LaTeX-Standardfonts
+%  hfoldsty % B) Diese Schrift stellt alle Ziffern, außer
+            % im Mathemodus, auf Minuskel- oder Mediäval-Ziffern um.
+            % Wenn Ihre pdfs unscharf aussehen installieren Sie bitte
+            % die cm-super-Fonts (Type1-Fonts).
+% charter   % C) Diese Zeile lädt die Charter als Schriftart
+}
+% \usepackage[osf,sc]{mathpazo}% D) So erreichen Sie Palatino als
+            % Schrift mit Minuskel-Ziffern und echten Kapitälchen
+            %
+%%%%%%%%%%%%% Ende des Vorspanns
+%vorspann teilweise übernommen von: http://homepage.ruhr-uni-bochum.de/georg.verweyen/pakete.html
+\begin{document}
+
+%document title page
+%\title{Bildverarbeitung auf FPGA Board}
+%\author{Christoph Paa\\HTW Aalen\\
+%\texttt{c.paa@gmx.de}}
+%\date{\today}
+%\maketitle
+
+\include{title}
+
+
+\tableofcontents
+\chapter{Über das Projekt}
+\section{Zielsetzung}
+Ziel des Projektes ist es, dem von Aleksej Wolf erstellten (M)JPEG decoder\cite{aleksej10} Möglichkeiten der Bildverarbeitung hinzuzufügen.
+
+\section{Zusammenfassung der Veränderungen}
+Zunächst wurde das Projekt so verändert, dass es anstatt 2 Entwicklungsboards und einer FTDI Platine auf einem einzelnen Terasic DE0 Board läuft. Hierzu wurde die Taktrate auf 100Mhz erhöht sowie die Ansteuerung des SDRAMs von Herrn Ehemann komplett neu entwickelt. Zur Übertragung der Daten wird die auf dem Board vorhandene RS-232 UART Schnittstelle verwendet. Hierzu ist es lediglich notwendig eine Buchse am Board anzulöten, die Notwendigen Signalpegel sind bereits vorhanden. Auf dem Board wurde ein frei verfügbarer RS-232 UART core verwendet.\cite{miller09} Als Frontend wird hierfür ein Matlab GUI verwendet. Diese Übernimmt das übermitteln der Bilddaten an das Board sowie das Konfigurieren der Filtereinstellungen.
+
+\chapter{Matlab GUI}
+Da die Grafikkarte nun einige Funktionen bekommen soll, welche Parameter erfordern ist eine Kommunikation zwischen dem Board und einem PC notwendig. Um die Übermittlung von Befehlen und Daten möglichst Benutzerfreundlich zu gestalten wurde entschieden, diese Kommunikation auf Seiten des PCs mit einem GUI zu steuern. Als Basis für das Serielle Kontroll- GUI wurde Mathworks Matlab gewählt, da es damit erstens einfach ist mithilfe des mitgelieferten GUIDE Tools GUIs zu erstellen und es vorgefertigte Funktionen zur seriellen Verbindung gibt. Zunächst wurde eine Klasse namens \emph{serial\_con} entwickelt welche die Serielle Verbindung kontrolliert und die den aktuellen Status des Boards überwacht. Diese Klasse regelt wann welche Schreib und Leseoperationen am Board durchgeführt werden dürfen bzw. müssen. Die Graphische Benutzeroberfläche bietet die Möglichkeit Bilder an das Board zu übertragen und die Parameter der Bildverarbeitungsfilter anzupassen.
+
+\section{Communication setup}
+Das \emph{communication setup} Panel dient dazu zu Beginn der Kommunikation den RS-232 Port des PCs einzustellen. Er übermittelt Einstellungen an das \emph{serial\_con} Objekt und steuert das Öffnen und schließen des Ports. Außerdem steuert der Zustand des Ports welche Elemente des GUI aktiv sind. Ist der Port noch geschlossen sieht das \emph{communication setup} Panel folgendermaßen aus:
+
+\begin{figure}[ht]
+	\centering
+  \includegraphics{pic/com_set_1.png}
+	\caption{RS-232 Status rot}
+	\label{ser_red}
+\end{figure}
+
+Sobald man die Einstellungen für \emph{COM port} sowie \emph{Baud rate} getroffen hat kann man mit \emph{open port} den RS-232 Port öffnen. Im unteren Teil des Panels wird der Aktuelle Verbindungsstatus Farbcodiert dargestellt. Ist das öffnen der Schnittstelle erfolgreich wechselt das Panel in den Nächsten Zustand:
+
+\begin{figure}[ht]
+	\centering
+  \includegraphics{pic/com_set_2.png}
+	\caption{RS-232 Status orange}
+	\label{ser_orange}
+\end{figure}
+
+Da der Port nun geöffnet ist ist es nun nicht mehr möglich die \emph{COM port} und \emph{Baud rate} Einstellungen zu manipulieren. Der Status im unteren Teil des Panels zeigt an, dass der Port erfolgreich geöffnet wurde. Außerdem wurde nun der Button zum testen der Verbindung zwischen PC und Board aktiviert. Wenn dieser Test nun ausgeführt wird und das Board auf die Anfrage antwortet sieht das GUI die Verbindung als hergestellt an, aktiviert die anderen Panels und aktualisiert den Status. Das Panel sieht dann folgendermaßen aus:
+
+\begin{figure}[ht]
+	\centering
+  \includegraphics{pic/com_set_3.png}
+	\caption{RS-232 Status grün}
+	\label{ser_green}
+\end{figure}
+
+
+
+Es ist natürlich jederzeit möglich die Schnittstelle wieder zu schließen und die Verbindung mit geänderten Einstellungen neu aufzubauen. Hierbei ist jedoch zu Beachten, dass der RS-232 core auf dem Board für geänderte \emph{Baud rate} Einstellungen neu konfiguriert und kompiliert werden muss.
+
+\section{write file}
+\begin{figure}[ht]
+	\centering
+  \includegraphics{pic/write_file.png}
+	\caption{\emph{Write file} Panel}
+	\label{gui_write_file}
+\end{figure}
+
+
+Dieses Panel steuert die Übertragung von Bilddaten an das Board. Hier wird die zu Übertragende Datei gewählt sowie die Bittiefe eingestellt. Momentan unterstützt die Implementation lediglich Binärdateien im 24 Bit Format. Bilder können entweder durch direkte Eingabe des Pfades oder durch einen File Dialog, welcher über die \emph{browse} Schaltfläche geöffnet wird, ausgewählt werden:
+
+\begin{figure}[ht]
+	\centering
+  \includegraphics[scale=0.75]{pic/browse_file.png}
+	\caption{\emph{Browse file} Dialog}
+	\label{gui_write_file}
+\end{figure}
+
+
+\section{filter options}
+Hier werden die Einstellungen für die Filter vorgenommen und diese an das Board übertragen. Die beiden Panels in Abbildung \ref{fig:gui_move_hist} und \ref{fig:gui_stretch_hist} dienen zur Übertragung der Einstellungen an die Filter auf dem Board. Wenn \emph{apply filter} betätigt wird werden die in Kapitel \ref{sec:hist_move} bzw. \ref{sec:hist_spread} beschriebenen Filter Gestartet. Die dabei übertragenen Befehle sind in auf Seite \pageref{tab:com} in Tabelle \ref{tab:com} beschrieben.
+
+\noindent\begin{minipage}{.45\textwidth}
+  \centering
+  \includegraphics{pic/gui_move_hist.png}
+  \captionof{figure}{Hist. verschieben Panel}
+  \label{fig:gui_move_hist}         
+\end{minipage}
+\begin{minipage}{.45\textwidth}
+  \centering
+  \includegraphics{pic/gui_stretch_hist.png}
+  \captionof{figure}{Hist. spreizen Panel}
+  \label{fig:gui_stretch_hist}            
+\end{minipage}
+
+
+\section{debug options}
+Das GUI beinhaltet ein zusätzliches Fenster welches nützliche Funktionen zum Debuggen von Änderungen an der Hardware beinhaltet. Hiermit ist es möglich bestimmte Datenmengen über die RS-232 Schnittstelle zu senden und Antworten des Boards zu empfangen. Dieser Teil des GUI wurde während des Entwicklungsprozesses ständig nach Bedarf verändert und er ist nicht immer mit der Aktuellen Version des FPGA Designs synchron.
+
+
+
+
+\chapter{RS-232 Kommando Empfänger}
+Die Grafikkarte mit Bildverarbeitung wird von einer Statemachine gesteuert, welche von RS-232 Kommandos beeinflusst wird. Als Kommandos werden hier ASCII Steuerzeichen verwendet. Folgende Befehle stehen zur Verfügung:
+
+\begin{table}[h]
+\begin{tabular}{|c|c|c|p{6cm}|}
+\hline 
+Hexadezimal & Steuerzeichen & Richtung & Beschreibung \\ 
+\hline 
+0x05 & ENQ & PC ---> Board & Anfrage and das Board, wird automatisch mit \emph{ACK} beantwortet \\ 
+\hline 
+0x06 & ACK & PC <--- Board & Antwort auf \emph{ENQ} Anfrage \\ 
+\hline 
+0x02 & STX & PC ---> Board & Start der Bildübertragung, 3072 pages mit jeh 256 x 12/24 Bit \\ 
+\hline 
+0x17 & ETB & PC <--- Board & Ende eines 256 x 12/24 Bit Blocks erreicht, Daten verarbeitet \\ 
+\hline 
+0x11 & DC1 & PC ---> Board & Filter Histogrammverschiebung, gefolgt von einem signed 8 Bit Integer \\
+\hline 
+0x12 & DC2 & PC ---> Board & Filter Histogrammspreizung, gefolgt von zwei 8 Bit unsigned Integern $\ (g_{min},\:g_{max})$\\
+\hline
+\end{tabular} \linebreak
+\caption{Tabelle der RS-232 Befehle}
+\label{tab:com}
+\end{table}
+Nachdem ein Datum vom RS-232 Empfänger empfangen wurde wird überprüft, welchem Befehlt es entspricht. Dies Geschieht im unten gelisteten Code. Hierbei wird mit Hilfe der \emph{rx\_busy} und \emph{rx\_busy\_last} Signale der Flankenwechsel am Befehlsempfänger synchron zum Systemtakt festgestellt. Das Empfangene Kommando wird mit der Funktion \emph{get\_rx\_command} dekodiert. Außerdem wird das senden des \emph{ACK} Steuerzeichens als Antwort auf \emph{ENQ} direkt hier verarbeitet. Um beim Empfang von Bilddaten diese nicht versehentlich zu interpretieren wird der Befehlsdecoder während des Bildempfangs deaktiviert indem der Zustand \emph{s\_wait\_for\_com} nicht aufgerufen wird.
+
+\lstset{numbers = left,
+numberstyle =\tiny,
+language = VHDL, 
+tabsize = 4,
+keywordstyle=\color{blue},          % keyword style
+commentstyle=\color{dkgreen},       % comment style}
+basicstyle= \footnotesize\ttfamily
+}
+\begin{lstlisting}
+when s_wait_for_com =>
+	pic_received <= '0';
+	data_out     <= x"00";
+	TX_start     <= '0';
+	if rx_busy = '1' then
+		rx_busy_last <= '1';
+	elsif rx_busy = '0' and rx_busy_last = '1' then
+		rx_busy_last <= '0';
+		rx_cmd_var := get_rx_command(data_in);
+		rx_cmd <= rx_cmd_var;
+		if rx_cmd_var = check_com then
+			tx_cmd <= board_ack;
+		else
+			tx_cmd <= unidentified;
+		end if;
+	end if;
+\end{lstlisting}
+
+
+\section{Veränderung der Hardware}
+Zunächst war geplant, die Datenübertragung über den USB-Anschluss des Boards zu implementierten. Dieser ist über einen FTDI-Chip auf dem Board mit dem als USB-Blaster konfigurierten Altera MAX II Baustein verbunden. Diese Art der Kommunikation wird auch von dem von Terasic zu Verfügung gestellten GUI verwendet. Jedoch stellte sich heraus, dass die Schnittstelle nicht in den Unterlagen zum Board dokumentiert ist. Auf Anfrage nach Unterlagen über diese Schnittstelle hat Terasic Support mir jedoch geraten aufgrund der Komplexen Anbindung des USB Anschlusses an den FPGA eine andere Schnittstelle, wie z.B. das RS-232 Interface zu wählen. Das Datenblatt des auf dem Board vorhandenen Texas Instruments MAX232 Driver/Receiver ICs ist in den Unterlagen zum DE0 Board mitgeliefert. Die Verwendung der Schnittstelle erforderte jedoch zunächst das Anbringen eines DE-9 Steckers an die dafür vorgesehenen Lötpunkte des DE0 Boards. Hierbei ist bei der Pinbelegung darauf zu Achten, ob man einen Stecker oder eine Buchse verwendet, denn dies beeinflusst welche Art von Kabel man verwendet. Kabel mit einer Stecker-Stecker Belegung sind meist intern Gedreht, wohingegen Stecker-Buchse Kabel keine Drehung der Anschlüsse aufweisen.
+
+\section{Datenübertragung}
+Die Bilder sind auf dem PC als 24 bit *.bmp Datei mit einer Auflösung von 1024 x 768 Pixeln und entferntem Header gespeichert. Für die Datenübertragung werden sie in Matlab eingelesen und in Sektionen von jeweils 256 Pixeln unterteilt. Diese $\frac{256*24}{8}=768$ Byte werden dann dem RS-232 Buffer übergeben und gesendet. Das Board empfängt diese Sektion in einem auf dem FPGA befindlichen Puffer. Dieser ist als Altera Cyclone III M9K Single-Port Ram implementiert. Wenn der komplette Block auf dem FPGA gepuffert ist wird er in den SDRAM geschrieben. Wenn die Schreiboperationen abgeschlossen sind signalisiert das Board dem PC, dass es bereit ist das nächste Datensegment zu empfangen. Die Datenübertragung erfolgt mit 115200 Baud/s, die Übertragung eines Vollständigen Bildes dauert hierbei etwa 4 Minuten.
+
+\chapter{Bildverarbeitung}
+Die beiden Bildverarbeitungsoperatoren die auf dem FPGA implementiert sind werden jeweils angewandt wenn sich das Bild vollständig im SDRAM befindet. Das Quellbild befindet sich hierbei auf der Ersten, das Ergebnisbild auf der zweiten Speicherbank des SDRAM. Die Operatoren arbeiten mit 24 Bit Farb- bzw. Grauwerten.
+
+\section{Punktoperatoren}
+Beide vorhandenen Operatoren zählen zur Klasse der Pixelverarbeitende Operatoren. Diese zeichnen sich dadurch aus, dass zu ihrer Berechnung jeweils nur \emph{ein} Pixel verändert werden muss und diese Veränderung nicht von umliegenden Pixeln beeinflusst wird. So wird bei der Histogrammverschiebung jedem Pixel ein Fester Wert addiert bzw. von ihm subtrahiert. Manche Pixelverarbeitende Operatoren setzen auch eine vorherige Analyse des Bilder voraus, so z.B. die Histogrammspreizung. Hierbei wird anhand des Histogramms die Grauwertverteilung beurteilt und der Filter dann entsprechend eingestellt.
+
+\section{Histogrammverschiebung}
+\label{sec:hist_move}
+Durch das Gleichförmige Verschieben des Histogramms in eine Richtung wird die \emph{mittlere Helligkeit} des Bildes verändert. Diese Operation ist nicht Umkehrbar, da Helligkeitswerte am oberen bzw. unteren Rand des Histogramms abgeschnitten werden. In den Beispielabbildungen \ref{fig:hist01} und \ref{fig:hist02} Ist das Histogramm eines Bildes vor und nach der Transformation mit einem Hisogrammverschiebungsoperator zu sehen. In \ref{fig:hist01} ist zusätzlich die Transformationskennlinie in rot zu sehen. Die Verschiebung beträgt im Beispiel etwa 63 Grauwertstufen nach Links.
+
+\noindent\begin{minipage}{.45\textwidth}
+  \centering
+  \includegraphics{pic/hist_move_1.png}
+  \captionof{figure}{Hist. vorher\cite{hist01}}
+  \label{fig:hist01}         
+\end{minipage}
+\begin{minipage}{.45\textwidth}
+  \centering
+  \includegraphics{pic/hist_move_2.png}
+  \captionof{figure}{Hist. nachher\cite{hist02}}
+  \label{fig:hist02}            
+\end{minipage}
+
+\subsection{Implementation}
+Die Histogrammverschiebung wird mit einem zweistufigen RS-232 Befehlt aufgerufen. Hierbei wird zuerst der Befehlscode für "Histogrammverschiebung" und dann der Wert übergeben. Der Wert ist ein 8 Bit signed integer, was eine Verschiebung von -128 bis +127 Stufen erlaubt. Wenn beide Teile des Befehls empfangen sind werden die Werte des Bildes in 256 Pixel Blöcken aus dem SDRAM ausgelesen. Die einzelnen Farbkanäle jedes Pixels werden dann mithilfe von folgender Funktion mit dem übergebenen Wert Addiert:\\
+
+\lstset{numbers = left,
+numberstyle =\tiny,
+language = VHDL, 
+tabsize = 4,
+keywordstyle=\color{blue},          % keyword style
+commentstyle=\color{dkgreen},       % comment style}
+basicstyle= \footnotesize\ttfamily
+}
+\begin{lstlisting}
+function capped_add(sum1 : unsigned(7 downto 0);
+ 					sum2 :   signed(7 downto 0)
+ 					) return unsigned is
+	--adds / subtracts sum2 from unsigned sum1,
+	--returns result in 0...255 range.
+	variable erg : signed(9 downto 0) := (others => '0');
+	begin
+		erg := signed("00" & sum1) + sum2;
+		if erg > 255 then
+			return to_unsigned(255,8);
+		elsif erg < 0 then
+			return to_unsigned(0,8);
+		else
+			return unsigned(erg(7 downto 0));
+		end if;
+end function capped_add;
+\end{lstlisting}
+
+Hierbei werden die von ieee.numeric\_std eingeführten \emph{signed} und \emph{unsigned} Datentypen verwendet um korrekte Ergebnisse sicher zu stellen. Diese Funktion überprüft darüber hinaus ob der neue Helligkeitswert den Wertebereich 0...255 überschreitet. Falls dies der Fall ist wird er auf den Maximal bzw. Minimalwert gesetzt, dies wird in der Bildverarbeitung als \emph{Clamping} bezeichnet. Die berechneten Werte werden dann in der zweiten Bank des SDRAM abgespeichert. Wenn das Komplette Bild bearbeitet ist wird die Darstellung von Bank 1 auf Bank 2 gewechselt und somit das verarbeitete Bild dargestellt.
+
+\section{Histogrammspreizung}
+\label{sec:hist_spread}
+Bei der Histogrammspreizung wird ein Bild mit schwacher Kontrast dadurch aufgewertet, dass der Verfügbare Helligkeitsraum im Histogramm besser ausgenutzt wird. Hierzu wird ein vorhandener schmaler Bereich an Helligkeitswerten wie in Abb. \ref{fig:hist03} auf einen möglichst großen Bereich Abgebildet (Abb. \ref{fig:hist04}).
+
+\noindent\begin{minipage}{.45\textwidth}
+  \centering
+  \includegraphics{pic/hist_spread_1.png}
+  \captionof{figure}{Hist. vorher\cite{hist03}}
+  \label{fig:hist03}         
+\end{minipage}
+\begin{minipage}{.45\textwidth}
+  \centering
+  \includegraphics{pic/hist_spread_2.png}
+  \captionof{figure}{Hist. nachher\cite{hist04}}
+  \label{fig:hist04}            
+\end{minipage}
+
+\subsection{Implementation}
+Die Histogrammspreizung besteht grob aus zwei Operationen: Dem Erstellen einer Lookup-Table (LUT) und dem Ersetzen der Farbwerte. Die LUT wird Erstellt, damit die Berechnung der Gleichungen \ref{eqtrans1} und \ref{eqtrans2} nur 256 mal ausgeführt werden muss anstatt $\ 1024 * 768 * 3 = 2359296$ mal. Beim Ersetzen der Farbwerte ist es dann lediglich notwendig den Korrekten Wert aus der Wertetabelle auszulesen. Zur Histogrammspreizung wird zunächst eine eine Lookup-Table erstellt. Dafür werden die Anfangs und Endwerte der Transformationskennlinie via RS-232 übertragen. Die Transformationskennlinie $\ T_{stretch}(g)$ wird dann vom FPGA mit Hilfe der Gleichungen \ref{eqtrans1} und \ref{eqtrans2} berechnet und in einem M9K Single Port Ram mit 8 Bit Adressbreite sowie 8 Bit Datenbreite gespeichert.
+
+
+\begin{equation}
+\label{eqtrans1}
+T_{trans}(g) = 
+\begin{cases}
+0 & \text{if } g \leq g_{min},\\
+T_{stretch}(g) & \text{if } g_{min} \leq g < g_{max},\\
+255 & \text{if } g_{max} \leq g.
+\end{cases}
+\end{equation}
+\begin{equation}
+\label{eqtrans2}
+T_{stretch}(g) = 256*\dfrac{g - g_{min}}{g_{max} - g_{min}}
+\end{equation}
+
+Die Berechnung der Gleichungen \ref{eqtrans1} und \ref{eqtrans2} wird von der Funktion \emph{hist\_stretch\_calc} im Paket \emph{graka\_pack.vhd} Übernommen:
+
+\lstset{numbers = left,
+numberstyle =\tiny,
+language = VHDL, 
+tabsize = 4,
+keywordstyle=\color{blue},          % keyword style
+commentstyle=\color{dkgreen},       % comment style}
+basicstyle= \footnotesize\ttfamily
+}
+\begin{lstlisting}
+function hist_stretch_calc(
+	g 		: unsigned(7 downto 0);
+	g_min 	: unsigned(7 downto 0);
+	g_max 	: unsigned(7 downto 0)
+	) return unsigned is
+	
+	variable gi : signed(9 downto 0);
+	variable gi_min : signed(9 downto 0);
+	variable gi_max : signed(9 downto 0);
+	variable erg : signed(17 downto 0);
+	
+	variable div1 : signed(17 downto 0);
+	variable div2 : signed(17 downto 0);
+	begin
+		gi := signed("00" & g);
+		gi_min := signed("00" & g_min);
+		gi_max := signed("00" & g_max);
+		
+		if gi > gi_max then
+			return to_unsigned(255,8);
+		elsif gi > gi_min then
+			div1 := signed((gi - gi_min) & "00000000");
+			div2 := signed("00000000" & (gi_max - gi_min));
+			erg := div1 / div2;
+			return unsigned(erg(7 downto 0));
+		else
+			return to_unsigned(0, 8);
+		end if;
+end function hist_stretch_calc;
+\end{lstlisting}
+
+Hierbei werden zunächst in Zeile 15-17 die Signale $\ g g_{min}, g_{max}$ in den Datentyp \emph{signed} überführt, um bei der Berechnung von Zähler $\ g-g_{min} $ und Nenner $\ g_{max} - g_{min} $ sicher zu stellen, dass keine Überläuft stattfinden. Die in Gleichung \ref{eqtrans1} beschriebenen Wertebereiche werden von den \emph{if, elsif, else} Statements in Zeilen 19, 21 und 26 behandelt. Gilt  $\ g_{min} \leq g < g_{max}$ werden die beiden Dividenden \emph{div1} und \emph{div2} erstellt. Da der Faktor 256 in Binärer Arithmetik einer einfachen Verschiebung entspricht wird er direkt in den Nenner Multipliziert indem dieser in Zeile 22 um 8 Stellen nach Links verschoben wird. Hierdurch kann die Division in Zeile 24 ohne die Verwendung von Fest- oder Gleitkommazahlen durchgeführt werden, was zusätzliche Libraries erfordert hätte.\\
+Die Berechnete Transformationskennlinie wird angewendet, indem  256 Pixel aus dem SDRAM ausgelesen werden und jeder Farbwert durch den Wert in der LUT ersetzt wird. Dies wird dadurch vereinfacht, dass der 8 Bit Farbwert aus dem SDRAM direkt die 8 Bit Adresse des neuen Farbwertes in der LUT Darstellt.
+
+
+%\section{Nachbarschaftsoperatoren}
+%Diese Operatoren berechnen den neuen Farbwert eines Pixels aus den Farbwerten %seiner Umgebung. Hierzu werden Filtermasken mit dem Bild gefaltet. Als Beispiel 
+%für einen derartigen Operator wurde der sogenannte \emph{Sobel} Operator %implementiert, welcher zur Kantenerkennung verwendet wird. Er basiert auf einem %3x3 Filterkernel, welcher jedoch Separierbar ist und dadurch zu zwei 3x1 Vektoren %vereinfacht wird.
+
+\chapter{Zusätzliche Informationen zum Projekt}
+Das Projekt wurde zusammen mit dem Projekt \emph{24 Bit Grafikkarte} von Herrn Christoph Ehemann entwickelt. Zur einfacheren Kollaboration kam das open-source Versionsverwaltungssystem git\footnote{http://git-scm.com/} zum Einsatz. Als Repository Host wurde github\footnote{https://github.com/} eingesetzt. Sämtliche Versionen des Quellcodes sind deshalb in der git Repository \url{https://github.com/youRFate/graka-projekt.git} verfügbar. Dieses Dokument wurde mit \LaTeX{} erstellt\footnote{http://www.latex-project.org/}.
+
+
+\renewcommand\bibname{Quellenverzeichnis}
+\begin{thebibliography}{99}
+\bibitem{aleksej10}
+ Aleksej Wolf:
+ \emph{Implementation und Test eines (M)JPEG Decoders auf einem FPGA}
+ Bachelor Thesis
+ HTW-Aalen
+ 20.10.2011
+ 
+\bibitem{miller09}
+ Lothar Miller:
+ \emph{Implementierung einer RS232 Schnittstelle}
+ Implementierung einer RS232 Schnittstelle
+ 8.7.2009
+ 
+\bibitem{hist01}
+ Wikimedia commons:
+ \emph{Erechtheum Acropolis 1853 histogram tkl trans.png}
+ \url{http://commons.wikimedia.org/wiki/File:Erechtheum_Acropolis_1853_histogram_tkl_trans.png}
+ 
+\bibitem{hist02}
+ Wikimedia commons:
+ \emph{Erechtheum Acropolis 1853 trans histogram.png}
+ \url{http://commons.wikimedia.org/wiki/File:Erechtheum_Acropolis_1853_trans_histogram.png}
+ 
+\bibitem{hist03}
+ Wikimedia commons:
+ \emph{Bike sapa29 clipping histogramm tkl.png}
+ \url{http://commons.wikimedia.org/wiki/File:Bike_sapa29_clipping_histogramm_tkl.png}
+ 
+\bibitem{hist04}
+ Wikimedia commons:
+ \emph{Bike sapa29 clipping stretch histogram.png}
+ \url{http://commons.wikimedia.org/wiki/File:Bike_sapa29_clipping_stretch_histogram.png}
+ 
+\end{thebibliography}
+
+\end{document}

@@ -37,10 +37,14 @@ type t_cram is record
 end record;
 
 type t_lut is record
-	addr	:  natural range 0 to 255;
+	addr_r	:  natural range 0 to 255;
+	addr_g	:  natural range 0 to 255;
+	addr_b	:  natural range 0 to 255;
 	data:  std_logic_vector(7 downto 0);
 	we		:  std_logic;
-	q	:  std_logic_vector(7 downto 0);
+	q_r	:  std_logic_vector(7 downto 0);
+	q_g	:  std_logic_vector(7 downto 0);
+	q_b	:  std_logic_vector(7 downto 0);
 end record;
 
 type t_filter_set is record
@@ -120,10 +124,14 @@ constant c_cram_empty : t_cram := (
 );
 
 constant c_lut_empty : t_lut := (
-    addr    => 0,
+    addr_r     => 0,
+	 addr_g		=> 0,
+	 addr_b		=> 0,
     data  => (others => '0'),
 	 we			=> '0',
-    q     => (others => '0')
+    q_r     => (others => '0'),
+	 q_g     => (others => '0'),
+	 q_b     => (others => '0')
 );
 
 constant c_dpram_empty : t_dpram := (

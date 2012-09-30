@@ -96,7 +96,9 @@ begin
     ram_comp_16 : single_port_ram generic map(8, 8) port map(clk, ram5.addr, ram5.data_g, ram5.we_g, ram5.q_g);
     ram_comp_17 : single_port_ram generic map(8, 8) port map(clk, ram5.addr, ram5.data_b, ram5.we_b, ram5.q_b);
 	 
-	 lut_cont : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr, filter_set.cont_ram.data, filter_set.cont_ram.we, filter_set.cont_ram.q);
+	 lut_cont_0 : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr_r, filter_set.cont_ram.data, filter_set.cont_ram.we, filter_set.cont_ram.q_r);
+	 lut_cont_1 : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr_g, filter_set.cont_ram.data, filter_set.cont_ram.we, filter_set.cont_ram.q_g);
+	 lut_cont_2 : single_port_ram generic map(8, 8) port map(clk, filter_set.cont_ram.addr_b, filter_set.cont_ram.data, filter_set.cont_ram.we, filter_set.cont_ram.q_b);
 
     dbg_byte_count <= pixel_counter;
     dbg_page_count <= page_counter;
@@ -1130,7 +1132,9 @@ begin
 							elsif cont_rec = 2 then
 								filter_set.cont_ram.we <= '1';
 							   --min and max values recieved, calculating LUT
-							   filter_set.cont_ram.addr <= cont_lut_addr;
+							   filter_set.cont_ram.addr_r <= cont_lut_addr;
+								filter_set.cont_ram.addr_g <= cont_lut_addr;
+								filter_set.cont_ram.addr_b <= cont_lut_addr;
 								if cont_lut_cnt < 5 then
 									filter_set.cont_ram.data <= std_logic_vector(hist_stretch_calc(to_unsigned(cont_lut_addr, 8), unsigned(filter_set.cont_g_min), unsigned(filter_set.cont_g_max)));
 									cont_lut_cnt := cont_lut_cnt + 1;
@@ -1269,7 +1273,7 @@ begin
                                           -- do magic here
                            ram1.addr <= i;
 									if cont_lut_cnt = 0 then
-										filter_set.cont_ram.addr <= to_integer(unsigned(ram5.q_r));
+										filter_set.cont_ram.addr_r <= to_integer(unsigned(ram5.q_r));
 										ram5.addr <= i;
 										cont_lut_cnt := cont_lut_cnt + 1;
 									elsif i = 256 then
@@ -1280,9 +1284,9 @@ begin
 									elsif cont_lut_cnt < 2 then
 										cont_lut_cnt := cont_lut_cnt + 1;
 									elsif cont_lut_cnt = 2 then
-										ram1.data_r <= filter_set.cont_ram.q;
-										ram1.data_g <= filter_set.cont_ram.q;
-										ram1.data_b <= filter_set.cont_ram.q;
+										ram1.data_r <= filter_set.cont_ram.q_r;
+										ram1.data_g <= filter_set.cont_ram.q_g;
+										ram1.data_b <= filter_set.cont_ram.q_b;
 										cnt3 := cnt3+1;                              
 										i := i+1;
 									end if; 
@@ -1421,6 +1425,7 @@ begin
                     else
                         contrast <= '1';
                         bank := 2;
+								filter_set.status <= '0';
                     end if;
 							
                 when others =>

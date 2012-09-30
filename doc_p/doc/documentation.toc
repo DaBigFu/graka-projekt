@@ -1,0 +1,19 @@
+\select@language {ngerman}
+\contentsline {chapter}{\numberline {1}\IeC {\"U}ber das Projekt}{3}
+\contentsline {section}{\numberline {1.1}Zielsetzung}{3}
+\contentsline {section}{\numberline {1.2}Zusammenfassung der Ver\IeC {\"a}nderungen}{3}
+\contentsline {chapter}{\numberline {2}Matlab GUI}{4}
+\contentsline {section}{\numberline {2.1}Communication setup}{4}
+\contentsline {section}{\numberline {2.2}write file}{6}
+\contentsline {section}{\numberline {2.3}filter options}{7}
+\contentsline {section}{\numberline {2.4}debug options}{8}
+\contentsline {chapter}{\numberline {3}RS-232 Kommando Empf\IeC {\"a}nger}{9}
+\contentsline {section}{\numberline {3.1}Ver\IeC {\"a}nderung der Hardware}{10}
+\contentsline {section}{\numberline {3.2}Daten\IeC {\"u}bertragung}{11}
+\contentsline {chapter}{\numberline {4}Bildverarbeitung}{12}
+\contentsline {section}{\numberline {4.1}Punktoperatoren}{12}
+\contentsline {section}{\numberline {4.2}Histogrammverschiebung}{12}
+\contentsline {subsection}{\numberline {4.2.1}Implementation}{13}
+\contentsline {section}{\numberline {4.3}Histogrammspreizung}{14}
+\contentsline {subsection}{\numberline {4.3.1}Implementation}{15}
+\contentsline {chapter}{\numberline {5}Zus\IeC {\"a}tzliche Informationen zum Projekt}{18}
