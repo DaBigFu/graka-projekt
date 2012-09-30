@@ -1102,7 +1102,7 @@ begin
                     elsif filter_set.status = '1' then
                         brightness <= '1';
                         bank := 2;
-								--filter_set.status <= '0';
+								filter_set.status <= '0';
                     end if;
 						  
 					 when s_write_cont_lut =>
