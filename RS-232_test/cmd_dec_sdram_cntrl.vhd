@@ -151,8 +151,8 @@ begin
                     next_state <= s_write_cont_lut;						  
                 elsif rd_req = '1' then
                     next_state <= s_ram_rd;
-                elsif dbg_switch = '1' and brightness = '0' then
-                    next_state <= s_brightness;
+                --elsif dbg_switch = '1' and brightness = '0' then
+                --    next_state <= s_brightness;
                 else
                     next_state <= s_wait_for_com;
                 end if;
@@ -216,7 +216,6 @@ begin
             when s_ram_init =>
                 if initialized = '1' then
                     next_state <= s_wait_for_com;
-                          --next_state<=s_ram_idle;
                 else
                     next_state <= s_ram_init;
                 end if;
@@ -348,6 +347,8 @@ begin
                             tx_cmd <= unidentified;
                         end if;
                     end if;
+						  
+						  filter_set.status <= '0';
 
                           --previous s_sram_idle
                     rd_done <= '0';
@@ -1097,14 +1098,14 @@ begin
                                 br              := 0;
 
                             end if;
-
                         else
                             br := 0;
                         end if;
                     elsif filter_set.status = '1' then
                         brightness <= '1';
+								rx_cmd <= unidentified;
                         bank := 2;
-								filter_set.status <= '0';
+								--filter_set.status <= '0';
                     end if;
 						  
 					 when s_write_cont_lut =>
@@ -1274,9 +1275,11 @@ begin
                            ram1.addr <= i;
 									if cont_lut_cnt = 0 then
 										filter_set.cont_ram.addr_r <= to_integer(unsigned(ram5.q_r));
+										filter_set.cont_ram.addr_g <= to_integer(unsigned(ram5.q_r));
+										filter_set.cont_ram.addr_b <= to_integer(unsigned(ram5.q_r));
 										ram5.addr <= i;
 										cont_lut_cnt := cont_lut_cnt + 1;
-									elsif i = 256 then
+									elsif cont_lut_cnt = 0 and i = 256 then
 										br := br +1;
 										ram1.we_r <= '0';
 										ram1.we_g <= '0';
@@ -1287,7 +1290,8 @@ begin
 										ram1.data_r <= filter_set.cont_ram.q_r;
 										ram1.data_g <= filter_set.cont_ram.q_g;
 										ram1.data_b <= filter_set.cont_ram.q_b;
-										cnt3 := cnt3+1;                              
+										cnt3 := cnt3+1;
+										cont_lut_cnt := 0;
 										i := i+1;
 									end if; 
                             
