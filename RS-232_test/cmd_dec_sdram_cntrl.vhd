@@ -108,9 +108,9 @@ begin
         x"4" when s_transmit_response,
         x"5" when s_wait_for_tx,
         x"8" when s_ram_rd,
-		  x"8" when s_brightness,
-		  x"9" when s_write_cont_lut,
-		  x"a" when s_cont,
+		  x"9" when s_brightness,
+		  x"a" when s_write_cont_lut,
+		  x"b" when s_cont,
         x"F" when others;
 
     --------------------------------------------------------------------
@@ -129,7 +129,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, wr_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received, brightness, dbg_switch, filter_set)
+    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, wr_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received, contrast, brightness, dbg_switch)
     begin
 
         case current_state is
@@ -236,7 +236,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    output_logic : process (clk, filter_set, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy, byte_toggle, pixel_counter, page_counter, data_in, rec_buff_b, rec_buff_rg, ram0)
+    output_logic : process (clk, reset, current_state, iADDR, iBA, iDQM, iWE, iCAS, iRAS, iCKE, iCS, buf_y, rx_busy, byte_toggle, pixel_counter, page_counter, data_in, rec_buff_b, rec_buff_rg, ram0)
 
         variable cnt1              : integer range 0 to 36000 := 0;
         variable cnt2              : integer range 0 to 31 := 0;
@@ -285,6 +285,7 @@ begin
             rx_cmd       <= unidentified;
             pic_received <= '0';
             brightness   <= '0';
+				contrast		 <= '0';
 
             pixel_counter <= 0;
             page_counter  <= 0;
@@ -936,10 +937,10 @@ begin
                                 cnt3 := 0;
                             elsif cnt2 = 1 then
                                 cnt2 := cnt2+1;
-                                ram5.addr <= 0;
+                                ram5.addr <= cnt3;
                                 cnt3:= cnt3+1;
                             else
-                                --ram5.addr <= cnt3;
+                                ram5.addr <= cnt3;
                                 cnt3 := cnt3+1;
                                 cnt2 := 0;
                                 br   := br+1;
@@ -1101,7 +1102,7 @@ begin
                     elsif filter_set.status = '1' then
                         brightness <= '1';
                         bank := 2;
-								filter_set.status <= '0';
+								--filter_set.status <= '0';
                     end if;
 						  
 					 when s_write_cont_lut =>
@@ -1487,6 +1488,9 @@ begin
 
 
                 when s_brightness =>
+                    ipixel <= x"00FFFF";
+						  
+					 when s_cont =>
                     ipixel <= x"00FFFF";
 
                 when others =>
