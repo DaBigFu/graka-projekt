@@ -246,16 +246,21 @@ function edit_file_path_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of edit_file_path as text
 %        str2double(get(hObject,'String')) returns contents of edit_file_path as a double
-switch(fext)
-    case '.bin'
-        handles.FilterIndex = 1;
-    case '.bmp'
-        handles.FilterIndex = 2;
-    otherwise
+[fpath fname fext] = fileparts(get(hObject, 'string'));
+if exist( [fpath fname fext] )    
+    switch(fext)
+        case '.bin'
+            handles.FilterIndex = 1;
+        case '.bmp'
+            handles.FilterIndex = 2;
+        otherwise
+    end
+else
+    errordlg(['File not found, the file "' fpath fname fext '" does not exist.'], 'File string error');    
+    set(hObject, 'string', 'File not found');
 end
 handles.FileName = [fname fext];
 handles.PathName = fpath;
-%TODO: check file properties
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.

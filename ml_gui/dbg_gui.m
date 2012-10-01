@@ -110,6 +110,7 @@ function pb_dbg_read_Callback(hObject, eventdata, handles)
 % hObject    handle to pb_dbg_read (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+set(handles.edit_dbg_read, 'string', get(handles.graka_gui.ser.read_char, 'string'));
 guidata(hObject, handles);
 
 

@@ -23,6 +23,7 @@ type t_command_array is ARRAY(0 to 4) of std_logic_vector(c_COM_LENGTH-1 downto 
 type t_rec_buff_rg is ARRAY(0 to 255) of std_logic_vector(15 downto 0);
 type t_rec_buff_b is ARRAY(0 to 255) of std_logic_vector(7 downto 0);
 
+--! type for controling m9k memory blocks
 type t_cram is record
 	addr	:  natural range 0 to 255;
 	data_r:  std_logic_vector(7 downto 0);
@@ -36,6 +37,7 @@ type t_cram is record
 	q_B	:  std_logic_vector(7 downto 0);
 end record;
 
+--! slightly different m9k memory control, used for the tripple lookup talbe
 type t_lut is record
 	addr_r	:  natural range 0 to 255;
 	addr_g	:  natural range 0 to 255;
@@ -47,6 +49,22 @@ type t_lut is record
 	q_b	:  std_logic_vector(7 downto 0);
 end record;
 
+--! type for controling dual port M9K memory blocks
+type t_dpram is record
+    raddr :  natural range 0 to 255;
+    waddr   :  natural range 0 to 255;
+    data_r:  std_logic_vector(7 downto 0);
+    data_g:  std_logic_vector(7 downto 0);
+    data_b:  std_logic_vector(7 downto 0);
+    we_r        :  std_logic;
+    we_g        :  std_logic;
+    we_b        :  std_logic;
+    q_r :  std_logic_vector(7 downto 0);
+    q_g :  std_logic_vector(7 downto 0);
+    q_B :  std_logic_vector(7 downto 0);
+end record;
+
+--! record containing the filter settings
 type t_filter_set is record
 		move_hist  : signed(7 downto 0);
 		cont_ram   : t_lut;
@@ -55,6 +73,7 @@ type t_filter_set is record
 		status	  : std_logic;
 end record;
 
+--! single port ram component
 component single_port_ram
 		generic 
 		(
@@ -71,20 +90,7 @@ component single_port_ram
 		);
 end component single_port_ram;
 
-type t_dpram is record
-	raddr :  natural range 0 to 255;
-	waddr	:  natural range 0 to 255;
-	data_r:  std_logic_vector(7 downto 0);
-	data_g:  std_logic_vector(7 downto 0);
-	data_b:  std_logic_vector(7 downto 0);
-	we_r		:  std_logic;
-	we_g		:  std_logic;
-	we_b		:  std_logic;
-	q_r	:  std_logic_vector(7 downto 0);
-	q_g	:  std_logic_vector(7 downto 0);
-	q_B	:  std_logic_vector(7 downto 0);
-end record;
-
+--! dual port ram component (currently unused)
 component dual_port_ram is
 
 	generic 
@@ -110,6 +116,7 @@ end component dual_port_ram;
 constant c_rx_com_arr : t_command_array := (x"02", x"03",x"05", x"11", x"12");
 constant c_tx_com_arr : t_command_array := (x"06", x"17",x"00", x"00", x"00");
 
+--! empty record initalization constants
 constant c_cram_empty : t_cram := (
     addr    => 0,
     data_r  => (others => '0'),
@@ -148,8 +155,6 @@ constant c_dpram_empty : t_dpram := (
 	q_B		=> (others => '0')
 );
 
-
-
 constant c_filter_set_empty : t_filter_set := (
 	move_hist => x"00",
 	cont_ram => c_lut_empty,
@@ -161,18 +166,26 @@ constant c_filter_set_empty : t_filter_set := (
 
 --###########################################################################
 --functions
+
+--! decode SLV to tx command type 
 function get_tx_command(com_in : t_tx_com) return STD_LOGIC_VECTOR;
 
+--! decode rx_command type into SLV
 function get_rx_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) return t_rx_com;
 
+--! 8 bit adder with clipping
 function capped_add_8(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned;
 
+--! lookup table calculation function
 function hist_stretch_calc(g : unsigned(7 downto 0); g_min : unsigned(7 downto 0); g_max : unsigned(7 downto 0)) return unsigned;
 
 end package graka_pack;
-
+--###########################################################################
+-- end of package, begin of package body
+--###########################################################################
 package body graka_pack is
 
+--! lookup table calculation function
 function hist_stretch_calc(g : unsigned(7 downto 0); g_min : unsigned(7 downto 0); g_max : unsigned(7 downto 0)) return unsigned is
 	variable gi : signed(9 downto 0);
 	variable gi_min : signed(9 downto 0);
@@ -185,12 +198,15 @@ function hist_stretch_calc(g : unsigned(7 downto 0); g_min : unsigned(7 downto 0
 		gi := signed("00" & g);
 		gi_min := signed("00" & g_min);
 		gi_max := signed("00" & g_max);
-		
+		--! decide if g > g_max or g < g_min
 		if gi > gi_max then
 			return to_unsigned(255,8);
 		elsif gi > gi_min then
+		    --! multiplication by 256
 			div1 := signed((gi - gi_min) & "00000000");
+			
 			div2 := signed("00000000" & (gi_max - gi_min));
+			--! division
 			erg := div1 / div2;
 			return unsigned(erg(7 downto 0));
 		else
@@ -198,6 +214,7 @@ function hist_stretch_calc(g : unsigned(7 downto 0); g_min : unsigned(7 downto 0
 		end if;
 end function hist_stretch_calc;
 
+--! 8 bit adder with clipping
 function capped_add_8(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) return unsigned is
 	--adds / subtracts sum2 from unsigned sum1, returns result in 0...255 range.
 	variable erg : signed(9 downto 0) := (others => '0');
@@ -212,11 +229,13 @@ function capped_add_8(sum1 : unsigned(7 downto 0); sum2 : signed(7 downto 0)) re
 		end if;
 end function capped_add_8;
 		
+--! returns tx command SLV
 function get_tx_command(com_in : t_tx_com) return STD_LOGIC_VECTOR is
 	begin
 		return c_tx_com_arr(t_tx_com'POS(com_in));
 end function get_tx_command;
 
+--! decode SLV into t_rx_com
 function get_rx_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) return t_rx_com is
 	begin
 		case com_in is
@@ -234,7 +253,5 @@ function get_rx_command(com_in : STD_LOGIC_VECTOR(c_COM_LENGTH-1 downto 0)) retu
 				return t_rx_com'right;
 		end case;
 end function get_rx_command;
-				
-
 
 end package body graka_pack;

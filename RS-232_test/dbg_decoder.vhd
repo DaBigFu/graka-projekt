@@ -3,6 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.graka_pack.all;
 
+--! debug deocder, used to switch the hexadecimal output on the 7 segment displays
 entity dbg_decoder is
 port(
 dbg_state		: in integer range 0 to 15;
