@@ -256,10 +256,15 @@ begin
         variable br                : integer range 0 to 31 := 0;
         variable i                 : integer range 0 to 511 := 0;
         variable bank              : integer range 0 to 3 := 0;
-		  variable cont_rec			  : integer range 0 to 3 := 0;
-		  variable cont_lut_addr	  : integer range 0 to 256 := 0;
-		  variable cont_lut_cnt		  : integer range 0 to 5 := 0;
-
+        
+		variable cont_rec		   : integer range 0 to 3 := 0;
+		variable cont_lut_addr	   : integer range 0 to 256 := 0;
+		variable cont_lut_cnt	   : integer range 0 to 5 := 0;
+		variable cont_state        : integer range 0 to 31 := 0;
+		variable cont_cnt          : integer range 0 to 4095 := 0;
+		variable cont_i            : integer range 0 to 511 := 0;
+		variable cont_cnt2         : integer range 0 to 31 := 0;
+		variable cont_cnt3         : integer range 0 to 511 := 0;
           --variable received_pic_counter : integer range 0 to 7 := 0;
 
         variable rx_cmd_var : t_rx_com := unidentified;
@@ -1109,328 +1114,332 @@ begin
                     end if;
 						  
 					 when s_write_cont_lut =>
-						  --write look-up table for histogramm spreading in ram
-						  cont_if_1 : if rx_busy = '1' then
-                        rx_busy_last <= '1';
-                    elsif rx_busy = '0' and rx_busy_last = '1' then
-						      cont_if_2 : if cont_rec = 0 then
-									filter_set.cont_g_min <= unsigned(data_in);
-								elsif cont_rec = 1 then
-									filter_set.cont_g_max <= unsigned(data_in);
-								end if cont_if_2;
-								cont_rec := cont_rec + 1;
-								rx_busy_last <= '0';
-								cont_lut_addr := 0;
-								
-							elsif cont_lut_addr = 256 then
-								--calculation done, moving on
-							   filter_set.status <= '1';
-								cont_rec := 0;
-								cont_lut_addr := 0;
-								cont_lut_cnt := 0;
-								filter_set.cont_ram.we <= '0';
+                          --write look-up table for histogramm spreading in ram
+                          cont_if_1 : if rx_busy = '1' then
+                              rx_busy_last <= '1';
+                          elsif rx_busy = '0' and rx_busy_last = '1' then
+                              cont_if_2 : if cont_rec = 0 then
+                                  filter_set.cont_g_min <= unsigned(data_in);
+                              elsif cont_rec = 1 then
+                                  filter_set.cont_g_max <= unsigned(data_in);
+                              end if cont_if_2;
+                              cont_rec := cont_rec + 1;
+                              rx_busy_last <= '0';
+                              cont_lut_addr := 0;
+
+                          elsif cont_lut_addr = 256 then
+                                --calculation done, moving on
+                              filter_set.status <= '1';
+                              cont_rec      := 0;
+                              cont_lut_addr := 0;
+                              cont_lut_cnt  := 0;
+                              filter_set.cont_ram.we <= '0';
+
+                          elsif cont_rec = 2 then
+                              filter_set.cont_ram.we <= '1';
+                               --min and max values recieved, calculating LUT
+                              filter_set.cont_ram.addr_r <= cont_lut_addr;
+                              filter_set.cont_ram.addr_g <= cont_lut_addr;
+                              filter_set.cont_ram.addr_b <= cont_lut_addr;
+                              if cont_lut_cnt < 5 then
+                                  filter_set.cont_ram.data <= std_logic_vector(hist_stretch_calc(to_unsigned(cont_lut_addr, 8), unsigned(filter_set.cont_g_min), unsigned(filter_set.cont_g_max)));
+                                  cont_lut_cnt := cont_lut_cnt + 1;
+                              else
+                                  cont_lut_addr := cont_lut_addr + 1;
+                                  cont_lut_cnt  := 0;
+                              end if;
+
+                          end if cont_if_1;
+
 							
-							elsif cont_rec = 2 then
-								filter_set.cont_ram.we <= '1';
-							   --min and max values recieved, calculating LUT
-							   filter_set.cont_ram.addr_r <= cont_lut_addr;
-								filter_set.cont_ram.addr_g <= cont_lut_addr;
-								filter_set.cont_ram.addr_b <= cont_lut_addr;
-								if cont_lut_cnt < 5 then
-									filter_set.cont_ram.data <= std_logic_vector(hist_stretch_calc(to_unsigned(cont_lut_addr, 8), unsigned(filter_set.cont_g_min), unsigned(filter_set.cont_g_max)));
-									cont_lut_cnt := cont_lut_cnt + 1;
-								else
-									cont_lut_addr := cont_lut_addr + 1;
-									cont_lut_cnt := 0;
-								end if;
-								
-							end if cont_if_1;
 							
-						when s_cont =>
-							dbg_refresh_int := dbg_refresh_int+1;
-						  if brgt_cnt < 3072  then
-                        if br = 0 then              --Bank Active (ACT) + brgt_cnt auf adresspin
+							
+                    when s_cont =>
+                          dbg_refresh_int := dbg_refresh_int+1;
+                    if cont_cnt < 3072  then
+                        if cont_state = 0 then              --Bank Active (ACT) + cont_cnt auf adresspin
                             DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
-                            iADDR   <= std_logic_vector(to_unsigned(brgt_cnt, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
-                            br := br+1;
+                            iADDR   <= std_logic_vector(to_unsigned(cont_cnt, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            cont_state := cont_state+1;
 
-                        elsif br = 1 then           --tRCD
+                        elsif cont_state = 1 then           --tRCD
                             iCS <= '1';
-                            if cnt2 < 2 then
-                                cnt2 := cnt2+1;
+                            if cont_cnt2 < 2 then
+                                cont_cnt2 := cont_cnt2+1;
                             else
-                                cnt2 := 0;
-                                br   := br+1;
+                                cont_cnt2       := 0;
+                                cont_state := cont_state+1;
                             end if;
 
-                        elsif br = 2 then           --rd  w/o precharge command + column auf Adresspin
+                        elsif cont_state = 2 then           --rd  w/o precharge command + column auf Adresspin
                             iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '1';
-                            br := br+1;
+                            cont_state := cont_state+1;
 
-                        elsif br = 3 then           --CAS latency
+                        elsif cont_state = 3 then           --CAS latency
                             iCS <= '1';
-                            if cnt2 < 3 then
-                                cnt2 := cnt2+1;
+                            if cont_cnt2 < 3 then
+                                cont_cnt2 := cont_cnt2+1;
                             else
-                                br   := br+1;
-                                cnt2 := 0;
-                                cnt3 := 0;
+                                cont_state := cont_state+1;
+                                cont_cnt2       := 0;
+                                cont_cnt3       := 0;
                             end if;
 
-                        elsif br = 4 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
-                            if cnt3 < 256 then
-                                ram5.we_r     <= '1';
-                                ram5.we_g     <= '1';
-                                ram5.addr   <= cnt3;
+                        elsif cont_state = 4 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
+                            if cont_cnt3 < 256 then
+                                ram5.we_r   <= '1';
+                                ram5.we_g   <= '1';
+                                ram5.addr   <= cont_cnt3;
                                 ram5.data_r <= DRAM_DQ(15 downto 8);
                                 ram5.data_g <= DRAM_DQ(7 downto 0);
-                                cnt3 := cnt3+1;
+                                cont_cnt3 := cont_cnt3+1;
                             else
-                                ram5.we_r     <= '0';
-                                ram5.we_g     <= '0';
-                                br   := br+1;
-                                cnt3 := 0;
+                                ram5.we_r <= '0';
+                                ram5.we_g <= '0';
+                                cont_state := cont_state+1;
+                                cont_cnt3       := 0;
                             end if;
 
 
-                        elsif br = 5 then         --precharge
+                        elsif cont_state = 5 then         --precharge
                             iADDR <= "0010000000000"; iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
-                            br := br+1;
+                            cont_state := cont_state+1;
 
-                        elsif br = 6 then         --trp
+                        elsif cont_state = 6 then         --trp
                             iCS <= '1';
-                            if cnt2 < 9 then
-                                cnt2 := cnt2+1;
+                            if cont_cnt2 < 9 then
+                                cont_cnt2 := cont_cnt2+1;
                             else
-                                br   := br+1;
-                                cnt2 := 0;
+                                cont_state := cont_state+1;
+                                cont_cnt2       := 0;
 
                             end if;
 
-                        elsif br = 7 then              --Bank Active (ACT) + row auf adresspin
-                            iADDR <= std_logic_vector(to_unsigned(brgt_cnt, iADDR'length)); iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
-                            br := br+1;
+                        elsif cont_state = 7 then              --Bank Active (ACT) + row auf adresspin
+                            iADDR <= std_logic_vector(to_unsigned(cont_cnt, iADDR'length)); iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            cont_state := cont_state+1;
 
-                        elsif br = 8 then           --tRCD
+                        elsif cont_state = 8 then           --tRCD
                             iCS <= '1';
-                            if cnt2 < 2 then
-                                cnt2 := cnt2+1;
+                            if cont_cnt2 < 2 then
+                                cont_cnt2 := cont_cnt2+1;
                             else
-                                cnt2 := 0;
-                                br   := br+1;
+                                cont_cnt2       := 0;
+                                cont_state := cont_state+1;
                             end if;
 
-                        elsif br = 9 then           --rd  w/o precharge command + column auf Adresspin
+                        elsif cont_state = 9 then           --rd  w/o precharge command + column auf Adresspin
                             iADDR <= "0000000000000"; iBA <= "01"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '1';
-                            br := br+1;
+                            cont_state := cont_state+1;
 
-                        elsif br = 10 then           --CAS latency
+                        elsif cont_state = 10 then           --CAS latency
                             iCS <= '1';
-                            if cnt2 < 3 then
-                                cnt2 := cnt2+1;
+                            if cont_cnt2 < 3 then
+                                cont_cnt2 := cont_cnt2+1;
                             else
-                                br   := br+1;
-                                cnt2 := 0;
-                                cnt3 := 0;
+                                cont_state := cont_state+1;
+                                cont_cnt2       := 0;
+                                cont_cnt3       := 0;
                             end if;
 
-                        elsif br = 11 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
-                            if cnt3 < 256 then
-                                ram5.we_b     <= '1';
-                                ram5.addr   <= cnt3;
+                        elsif cont_state = 11 then           --einlesen der naechsten 256 Werte auf dem DQ-Bus
+                            if cont_cnt3 < 256 then
+                                ram5.we_b   <= '1';
+                                ram5.addr   <= cont_cnt3;
                                 ram5.data_b <= DRAM_DQ(15 downto 8);
-                                cnt3 := cnt3+1;
+                                cont_cnt3 := cont_cnt3+1;
                             else
                                 ram5.we_b <= '0';
-                                br   := br+1;
-                                cnt3 := 0;
+                                cont_state := cont_state+1;
+                                cont_cnt3       := 0;
                             end if;
 
 
-                        elsif br = 12 then         --precharge
+                        elsif cont_state = 12 then         --precharge
                             iADDR <= "0010000000000"; iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
-                            br := br+1;
+                            cont_state := cont_state+1;
 
-                        elsif br = 13 then         --trp
+                        elsif cont_state = 13 then         --trp
                             iCS <= '1';
-                            if cnt2 = 0 then
-                                cnt2 := cnt2+1;
-                                cnt3 := 0;
-                            elsif cnt2 = 1 then
-                                cnt2 := cnt2+1;
-                                ram5.addr <= cnt3;
-                                cnt3:= cnt3+1;
+                            if cont_cnt2 = 0 then
+                                cont_cnt2 := cont_cnt2+1;
+                                cont_cnt3 := 0;
+                            elsif cont_cnt2 = 1 then
+                                cont_cnt2 := cont_cnt2+1;
+                                ram5.addr <= cont_cnt3;
+                                cont_cnt3 := cont_cnt3+1;
                             else
-                                ram5.addr <= cnt3;
-                                cnt3 := cnt3+1;
-                                cnt2 := 0;
-                                br   := br+1;
+                                ram5.addr <= cont_cnt3;
+                                cont_cnt3       := cont_cnt3+1;
+                                cont_cnt2       := 0;
+                                cont_state := cont_state+1;
                             end if;
 
-                       elsif br = 14 then
-                           ram1.we_r <= '1';
-                           ram1.we_g <= '1';
-                           ram1.we_b <= '1';
+                        elsif cont_state = 14 then
+                            ram1.we_r <= '1';
+                            ram1.we_g <= '1';
+                            ram1.we_b <= '1';
                                           -- do magic here
-                           ram1.addr <= i;
-									if cont_lut_cnt = 0 then
-										filter_set.cont_ram.addr_r <= to_integer(unsigned(ram5.q_r));
-										filter_set.cont_ram.addr_g <= to_integer(unsigned(ram5.q_r));
-										filter_set.cont_ram.addr_b <= to_integer(unsigned(ram5.q_r));
-										ram5.addr <= i;
-										cont_lut_cnt := cont_lut_cnt + 1;
-									elsif cont_lut_cnt = 0 and i = 256 then
-										br := br +1;
-										ram1.we_r <= '0';
-										ram1.we_g <= '0';
-										ram1.we_b <= '0';
-									elsif cont_lut_cnt < 2 then
-										cont_lut_cnt := cont_lut_cnt + 1;
-									elsif cont_lut_cnt = 2 then
-										ram1.data_r <= filter_set.cont_ram.q_r;
-										ram1.data_g <= filter_set.cont_ram.q_g;
-										ram1.data_b <= filter_set.cont_ram.q_b;
-										cnt3 := cnt3+1;
-										cont_lut_cnt := 0;
-										i := i+1;
-									end if; 
-                            
-                        elsif br = 15 then        --bank active
-                            iADDR <= std_LOGIC_VECTOR(to_unsigned((brgt_cnt), iADDR'length)); iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
-                            br := br+1;
-
-                        elsif br = 16 then       --tRCD
-                            iCS <= '1';
-                            if cnt2 = 0 then
-                                cnt2 := cnt2+1;
-                                cnt3 := 0;
-                            elsif cnt2 = 1 then
-                                cnt2 := cnt2+1;
-                                ram1.addr <= cnt3;
-                                cnt3:= cnt3+1;
-                            else
-                                ram1.addr <= cnt3;
-                                cnt3 := cnt3+1;
-                                cnt2 := 0;
-                                br   := br+1;
+                            ram1.addr <= cont_i;
+                            if cont_lut_cnt = 0 then
+                                filter_set.cont_ram.addr_r <= to_integer(unsigned(ram5.q_r));
+                                filter_set.cont_ram.addr_g <= to_integer(unsigned(ram5.q_r));
+                                filter_set.cont_ram.addr_b <= to_integer(unsigned(ram5.q_r));
+                                ram5.addr                  <= cont_i;
+                                cont_lut_cnt := cont_lut_cnt + 1;
+                            elsif cont_lut_cnt = 0 and cont_i = 256 then
+                                cont_state := cont_state +1;
+                                ram1.we_r <= '0';
+                                ram1.we_g <= '0';
+                                ram1.we_b <= '0';
+                            elsif cont_lut_cnt < 2 then
+                                cont_lut_cnt := cont_lut_cnt + 1;
+                            elsif cont_lut_cnt = 2 then
+                                ram1.data_r <= filter_set.cont_ram.q_r;
+                                ram1.data_g <= filter_set.cont_ram.q_g;
+                                ram1.data_b <= filter_set.cont_ram.q_b;
+                                cont_cnt3         := cont_cnt3+1;
+                                cont_lut_cnt := 0;
+                                cont_i            := cont_i+1;
                             end if;
 
-                        elsif br = 17 then       --write
+                        elsif cont_state = 15 then        --bank active
+                            iADDR <= std_LOGIC_VECTOR(to_unsigned((cont_cnt), iADDR'length)); iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            cont_state := cont_state+1;
+
+                        elsif cont_state = 16 then       --tRCD
+                            iCS <= '1';
+                            if cont_cnt2 = 0 then
+                                cont_cnt2 := cont_cnt2+1;
+                                cont_cnt3 := 0;
+                            elsif cont_cnt2 = 1 then
+                                cont_cnt2 := cont_cnt2+1;
+                                ram1.addr <= cont_cnt3;
+                                cont_cnt3 := cont_cnt3+1;
+                            else
+                                ram1.addr <= cont_cnt3;
+                                cont_cnt3       := cont_cnt3+1;
+                                cont_cnt2       := 0;
+                                cont_state := cont_state+1;
+                            end if;
+
+                        elsif cont_state = 17 then       --write
                             iADDR     <= "0000000000000"; iBA <= "10"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-                            ram1.addr <= cnt3;
+                            ram1.addr <= cont_cnt3;
                             DRAM_DQ   <= ram1.q_r & ram1.q_g;
-                            cnt3 := cnt3+1;
-                            br   := br+1;
+                            cont_cnt3       := cont_cnt3+1;
+                            cont_state := cont_state+1;
 
 
 
-                        elsif br = 18 then       --write die restlichen 255 words
+                        elsif cont_state = 18 then       --write die restlichen 255 words
                             iCS <= '1';
-                            if cnt3 < 259 then
-                                ram1.addr <= cnt3;
+                            if cont_cnt3 < 259 then
+                                ram1.addr <= cont_cnt3;
                                 DRAM_DQ   <= ram1.q_r & ram1.q_g;
-                                cnt3 := cnt3+1;
+                                cont_cnt3 := cont_cnt3+1;
                             else
                                 iRAS <= '1'; iCAS <= '1'; iWE <= '0'; iCS <= '0';   --burststop
-                                cnt3 := 0;
-                                br   := br+1;
+                                cont_cnt3       := 0;
+                                cont_state := cont_state+1;
                             end if;
 
-                        elsif br = 19 then       --tRDL
+                        elsif cont_state = 19 then       --tRDL
                             iCS <= '1';
-                            if cnt3 < 1 then
-                                cnt3 := cnt3+1;
+                            if cont_cnt3 < 1 then
+                                cont_cnt3 := cont_cnt3+1;
                             else
-                                cnt3 := 0;
-                                br   := br+1;
+                                cont_cnt3       := 0;
+                                cont_state := cont_state+1;
                             end if;
 
-                        elsif br = 20 then       --precharge
+                        elsif cont_state = 20 then       --precharge
                             iADDR <= "0010000000000"; iBA <= "10"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
-                            br := br+1;
+                            cont_state := cont_state+1;
 
-                        elsif br = 21 then       --tRP
+                        elsif cont_state = 21 then       --tRP
                             iCS <= '1';
-                            if cnt2 < 9 then
-                                cnt2 := cnt2+1;
+                            if cont_cnt2 < 9 then
+                                cont_cnt2 := cont_cnt2+1;
                             else
-                                cnt2 := 0;
-                                br   := br+1;
+                                cont_cnt2       := 0;
+                                cont_state := cont_state+1;
 
                             end if;
 
-                        elsif br = 22 then          --bank active
-                            iADDR <= std_LOGIC_VECTOR(to_unsigned((brgt_cnt), iADDR'length)); iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
-                            br := br+1;
+                        elsif cont_state = 22 then          --bank active
+                            iADDR <= std_LOGIC_VECTOR(to_unsigned((cont_cnt), iADDR'length)); iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                            cont_state := cont_state+1;
 
-                        elsif br = 23 then       --tRCD
+                        elsif cont_state = 23 then       --tRCD
                             iCS <= '1';
-                            if cnt2 = 0 then
-                                cnt2 := cnt2+1;
-                                cnt3 := 0;
-                            elsif cnt2 = 1 then
-                                cnt2 := cnt2+1;
-                                ram1.addr <= cnt3;
-                                cnt3:= cnt3+1;
+                            if cont_cnt2 = 0 then
+                                cont_cnt2 := cont_cnt2+1;
+                                cont_cnt3 := 0;
+                            elsif cont_cnt2 = 1 then
+                                cont_cnt2 := cont_cnt2+1;
+                                ram1.addr <= cont_cnt3;
+                                cont_cnt3 := cont_cnt3+1;
                             else
-                                ram1.addr <= cnt3;
-                                cnt3 := cnt3+1;
-                                cnt2 := 0;
-                                br   := br+1;
+                                ram1.addr <= cont_cnt3;
+                                cont_cnt3       := cont_cnt3+1;
+                                cont_cnt2       := 0;
+                                cont_state := cont_state+1;
                             end if;
 
-                        elsif br = 24 then       --write
+                        elsif cont_state = 24 then       --write
                             iADDR     <= "0000000000000"; iBA <= "11"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '0';
-                            ram1.addr <= cnt3;
+                            ram1.addr <= cont_cnt3;
                             DRAM_DQ   <= ram1.q_b & x"00";
-                            cnt3 := cnt3+1;
-                            br   := br+1;
+                            cont_cnt3       := cont_cnt3+1;
+                            cont_state := cont_state+1;
 
-                        elsif br = 25 then       --write die restlichen 255 words
+                        elsif cont_state = 25 then       --write die restlichen 255 words
                             iCS <= '1';
-                            if cnt3 < 259 then
-                                ram1.addr <= cnt3;
+                            if cont_cnt3 < 259 then
+                                ram1.addr <= cont_cnt3;
                                 DRAM_DQ   <= ram1.q_b & x"00";
-                                cnt3 := cnt3+1;
+                                cont_cnt3 := cont_cnt3+1;
                             else
                                 iRAS <= '1'; iCAS <= '1'; iWE <= '0'; iCS <= '0';   --burststop
-                                cnt3 := 0;
-                                br   := br+1;
+                                cont_cnt3       := 0;
+                                cont_state := cont_state+1;
                             end if;
 
-                        elsif br = 26 then       --tRDL
+                        elsif cont_state = 26 then       --tRDL
                             iCS <= '1';
-                            if cnt3 < 1 then
-                                cnt3 := cnt3+1;
+                            if cont_cnt3 < 1 then
+                                cont_cnt3 := cont_cnt3+1;
                             else
-                                cnt3 := 0;
-                                br   := br+1;
+                                cont_cnt3       := 0;
+                                cont_state := cont_state+1;
                             end if;
 
-                        elsif br = 27 then       --precharge
+                        elsif cont_state = 27 then       --precharge
                             iADDR <= "0010000000000"; iBA <= "11"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
-                            br := br+1;
+                            cont_state := cont_state+1;
 
-                        elsif br = 28 then       --tRP
+                        elsif cont_state = 28 then       --tRP
                             iCS <= '1';
-                            if cnt2 < 2 then
-                                cnt2 := cnt2+1;
+                            if cont_cnt2 < 2 then
+                                cont_cnt2 := cont_cnt2+1;
                             else
                                 dbg_refresh_cyc <= std_LOGIC_VECTOR(to_unsigned(dbg_refresh_int, 16));
                                 dbg_refresh_int := 0;
-                                brgt_cnt        := brgt_cnt +1;
-                                cnt2            := 0;
-                                br              := 0;
+                                cont_cnt        := cont_cnt +1;
+                                cont_cnt2            := 0;
+                                cont_state      := 0;
 
                             end if;
                         else
-                            br := 0;
+                            cont_state := 0;
                         end if;
                     else
                         contrast <= '1';
                         bank := 2;
-								filter_set.status <= '0';
+                        filter_set.status <= '0';
                     end if;
+
 							
                 when others =>
                     null;
