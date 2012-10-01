@@ -8,7 +8,7 @@
 *.bmp
 *.jpg
 *.png
-
+*.aux
 *.orig
 
 *.asv

@@ -344,7 +344,7 @@ END SYN;
 -- Retrieval info: GEN_FILE: TYPE_NORMAL PLL65.ppf TRUE
 -- Retrieval info: GEN_FILE: TYPE_NORMAL PLL65.inc FALSE
 -- Retrieval info: GEN_FILE: TYPE_NORMAL PLL65.cmp TRUE
--- Retrieval info: GEN_FILE: TYPE_NORMAL PLL65.bsf TRUE FALSE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL PLL65.bsf TRUE
 -- Retrieval info: GEN_FILE: TYPE_NORMAL PLL65_inst.vhd FALSE
 -- Retrieval info: LIB_FILE: altera_mf
 -- Retrieval info: CBX_MODULE_PREFIX: ON
