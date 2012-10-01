@@ -1277,20 +1277,24 @@ begin
                             ram1.we_b <= '1';
                                           -- do magic here
                             ram1.addr <= cont_i;
-                            if cont_lut_cnt = 0 then
-                                filter_set.cont_ram.addr_r <= to_integer(unsigned(ram5.q_r));
-                                filter_set.cont_ram.addr_g <= to_integer(unsigned(ram5.q_r));
-                                filter_set.cont_ram.addr_b <= to_integer(unsigned(ram5.q_r));
-                                ram5.addr                  <= cont_i;
-                                cont_lut_cnt := cont_lut_cnt + 1;
-                            elsif cont_lut_cnt = 0 and cont_i = 256 then
+                            if cont_lut_cnt = 0 and cont_i = 256 then
+									     --done
                                 cont_state := cont_state +1;
                                 ram1.we_r <= '0';
                                 ram1.we_g <= '0';
-                                ram1.we_b <= '0';
+                                ram1.we_b <= '0';										  
+									 elsif cont_lut_cnt = 0 then
+									     --write adresses to filter lut
+                                filter_set.cont_ram.addr_r <= to_integer(unsigned(ram5.q_r));
+                                filter_set.cont_ram.addr_g <= to_integer(unsigned(ram5.q_g));
+                                filter_set.cont_ram.addr_b <= to_integer(unsigned(ram5.q_b));
+                                ram5.addr                  <= cont_i;
+                                cont_lut_cnt := cont_lut_cnt + 1;
                             elsif cont_lut_cnt < 2 then
+									     -- wait 2 cycles
                                 cont_lut_cnt := cont_lut_cnt + 1;
                             elsif cont_lut_cnt = 2 then
+									     -- write data of lut into ram, increment adress counters
                                 ram1.data_r <= filter_set.cont_ram.q_r;
                                 ram1.data_g <= filter_set.cont_ram.q_g;
                                 ram1.data_b <= filter_set.cont_ram.q_b;
