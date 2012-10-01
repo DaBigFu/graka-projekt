@@ -151,8 +151,6 @@ begin
                     next_state <= s_write_cont_lut;						  
                 elsif rd_req = '1' then
                     next_state <= s_ram_rd;
-                elsif dbg_switch = '1' and brightness = '0' then
-                    next_state <= s_brightness;
                 else
                     next_state <= s_wait_for_com;
                 end if;
