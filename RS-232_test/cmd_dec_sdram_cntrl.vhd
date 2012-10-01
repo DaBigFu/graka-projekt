@@ -25,9 +25,7 @@ entity cmd_dec_sdram_cntrl is
         dbg_page_count  : out integer range 0 to 1874;
         dbg_byte_count  : out integer range 0 to 255;
         dbg_cyc_count   : out std_logic_vector(27 downto 0);
-        dbg_refresh_cyc : out std_logic_vector(15 downto 0);
-        dbg_switch      : in STD_LOGIC
-
+        dbg_refresh_cyc : out std_logic_vector(15 downto 0)
     );
 
 end entity cmd_dec_sdram_cntrl;
@@ -131,7 +129,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, wr_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received, contrast, brightness, dbg_switch)
+    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, wr_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received, contrast, brightness)
     begin
 
         case current_state is

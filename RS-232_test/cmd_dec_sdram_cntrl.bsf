@@ -73,13 +73,6 @@ applicable agreement for further details.
 		(line (pt 0 128)(pt 16 128)(line_width 1))
 	)
 	(port
-		(pt 0 144)
-		(input)
-		(text "dbg_switch" (rect 0 0 70 12)(font "Arial" ))
-		(text "dbg_switch" (rect 21 139 91 151)(font "Arial" ))
-		(line (pt 0 144)(pt 16 144)(line_width 1))
-	)
-	(port
 		(pt 304 48)
 		(output)
 		(text "DRAM_ADDR[12..0]" (rect 0 0 113 12)(font "Arial" ))
