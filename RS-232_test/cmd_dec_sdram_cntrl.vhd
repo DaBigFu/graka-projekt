@@ -129,7 +129,7 @@ begin
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
     ----------------------------------------------------------------------
-    next_state_logic : process (clk, reset, current_state, rd_req, rd_done, wr_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received, contrast, brightness)
+    next_state_logic : process (clk, filter_set, reset, current_state, rd_req, rd_done, wr_done, initialized, rx_busy, rx_busy_last, data_in, tx_busy, rx_cmd, pic_received, page_counter, page_received, contrast, brightness)
     begin
 
         case current_state is
@@ -255,7 +255,7 @@ begin
         
 		variable cont_rec		   : integer range 0 to 3 := 0;
 		variable cont_lut_addr	   : integer range 0 to 256 := 0;
-		variable cont_lut_cnt	   : integer range 0 to 5 := 0;
+		variable cont_lut_cnt	   : integer range 0 to 10 := 0;
 		variable cont_state        : integer range 0 to 31 := 0;
 		variable cont_cnt          : integer range 0 to 4095 := 0;
 		variable cont_i            : integer range 0 to 511 := 0;
@@ -1137,7 +1137,7 @@ begin
                               filter_set.cont_ram.addr_r <= cont_lut_addr;
                               filter_set.cont_ram.addr_g <= cont_lut_addr;
                               filter_set.cont_ram.addr_b <= cont_lut_addr;
-                              if cont_lut_cnt < 5 then
+                              if cont_lut_cnt < 6 then
                                   filter_set.cont_ram.data <= std_logic_vector(hist_stretch_calc(to_unsigned(cont_lut_addr, 8), unsigned(filter_set.cont_g_min), unsigned(filter_set.cont_g_max)));
                                   cont_lut_cnt := cont_lut_cnt + 1;
                               else
@@ -1439,7 +1439,6 @@ begin
                         bank := 2;
                         filter_set.status <= '0';
                     end if;
-
 							
                 when others =>
                     null;
