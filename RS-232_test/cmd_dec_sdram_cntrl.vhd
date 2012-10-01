@@ -319,6 +319,15 @@ begin
             brgt_cnt      := 0;
             br            := 0;
             i             := 0;
+				
+				cont_rec		:= 0;
+				cont_lut_addr	:= 0;
+				cont_lut_cnt	:= 0;
+				cont_state      := 0;
+				cont_cnt        := 0;
+				cont_i          := 0;
+				cont_cnt2       := 0;
+				cont_cnt3       := 0;
                 --received_pic_counter := 0;
 
         elsif (clk'EVENT and clk = '1') then
@@ -1280,6 +1289,7 @@ begin
                             if cont_lut_cnt = 0 and cont_i = 256 then
 									     --done
                                 cont_state := cont_state +1;
+										  cont_i := 0;
                                 ram1.we_r <= '0';
                                 ram1.we_g <= '0';
                                 ram1.we_b <= '0';										  
