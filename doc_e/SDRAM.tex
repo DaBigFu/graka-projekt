@@ -222,13 +222,16 @@ Da der Refresh-Befehl bei meinem RAM absolut nicht funktionierte, erneuere ich d
 \newpage
 \section{SDRAM-Controller-Modul}
 
-\begin{wrapfigure}{r}{0.4\textwidth}
-\label{fig:SDRAM}
-  \begin{center}
-    \includegraphics[width=0.4\textwidth]{SDRAM-Modul}
-  \end{center}
-  \caption{SDRAM-Modul}
-\end{wrapfigure}
+
 
 Um sich die Entwicklung eines weiteren Kommunikationskanals zu ersparen, wurde das SDRAM-Controller in den Kommando-Decoder der RS232-Schnittstelle von Herrn Paa integriert. Die Namen der Schnittstellen zum SDRAM tragen den selben Namen wie im Kapitel Speicherinterface angeführt. Der Bus \emph{pixel} gibt die per \emph{Vcnt} und \emph{Hcnt} von der VGA-Schnitt\-stel\-le geforderten Farbwerte an diese zurück. Die restlichen Ein- und Ausgänge werden für die RS232-Kommunikation verwendet.
+
+%
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.5\textwidth]{SDRAM-Modul} %{CS0031}
+\caption{SDRAM-Modul}
+\label{fig:RAM-M}
+\end{figure}
+%
 \FloatBarrier
