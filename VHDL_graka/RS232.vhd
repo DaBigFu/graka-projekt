@@ -1,12 +1,12 @@
--- source: http://www.lothar-miller.de/s9y/categories/42-RS232 03.08.2012
+-----source: http://www.lothar-miller.de/s9y/categories/42-RS232 03.08.2012
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-entity RS232_test is
-    Generic ( Quarz_Taktfrequenz : integer   := 100000000;  -- Hertz 
-              Baudrate           : integer   := 14400      -- Bits/Sec 9600
+entity RS232 is
+    Generic ( Quarz_Taktfrequenz : integer   := 166000000;  -- Hertz 
+              Baudrate           : integer   := 115200      -- Bits/Sec 9600
              ); 
     Port ( RXD      : in   STD_LOGIC;
            RX_Data  : out  STD_LOGIC_VECTOR (7 downto 0);
@@ -17,9 +17,9 @@ entity RS232_test is
            TX_Busy  : out  STD_LOGIC;
            CLK      : in   STD_LOGIC
            );
-end RS232_test;
+end RS232;
 
-architecture Behavioral of RS232_test is
+architecture Behavioral of RS232 is
 signal txstart : std_logic := '0';
 signal txsr    : std_logic_vector  (9 downto 0) := "1111111111";  -- Startbit, 8 Datenbits, Stopbit
 signal txbitcnt : integer range 0 to 10 := 10;

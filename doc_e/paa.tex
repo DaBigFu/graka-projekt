@@ -1,0 +1,17 @@
+\chapter{Einbindung in Bildverarbeitung von C. Paa}
+\label{cha:Paa}
+
+Diese Arbeit wurde parallel bzw. als Grundlage für das Projekt von Herrn Paa entwickelt. Seine Arbeit beschäftigt sich mit der Implementierung von Bildbearbeitungsalgorithmen im FPGA und einem passenden Frontend dazu.
+Zur Kommunikation mit dem PC wurde dem DE0-Board ein 9-polige DSUB-Buchse aufgelötet und mit dem RS232-Port eines PCs verbunden. Als Frontend dient ein Matlab-GUI (Abb. \ref{fig:GUI} ), über welches Bilder auf das Board übertragen und bearbeitet werden können.
+
+\begin{figure}[h!]
+\label{fig:GUI}
+\centering
+\includegraphics[width=0.6\textwidth]{matlab-gui} %{CS0031}
+\caption{Matlab-GUI}
+\end{figure}
+\FloatBarrier
+
+Meine Arbeit setzt an der Stelle ein, die übertragenen Daten im SDRAM abzuspeichern und die für die Bildverarbeitung benötigten Daten bereit zu stellen. Dafür haben wir die Module von Herrn Paa zur RS232-Kommandointerpretierung und Bildverarbeitung, sowie meinen SDRAM-Controller in einem Modul kombiniert, um uns einen weiteren Kommunikationskanal zwischen den Komponenten zu ersparen.
+
+Das gesamt Projekt ist in der Lage eine Bitmap mit bereits entferntem Header im SDRAM des DE-Boards abzulegen und anschließend zu bearbeiten. Zur Verfügung stehen eine Option zur Verschiebung des Histogramms, was eine Veränderung der Helligkeit ermöglicht. Des Weiteren besteht die Möglichkeit der Spreizung des Histogramms, also die Festlegung eines neuen Maximum und Minimum in jedem Farbbereich und einer darauf folgenden Neuberechnung eines jeden Farbwertes. Dies führt zu einer ausgeglicheneren Farbverteilung, bei richtiger Anwendung.

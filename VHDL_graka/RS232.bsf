@@ -21,7 +21,7 @@ applicable agreement for further details.
 (header "symbol" (version "1.1"))
 (symbol
 	(rect 16 16 256 144)
-	(text "RS232_test" (rect 5 0 75 12)(font "Arial" ))
+	(text "RS232" (rect 5 0 40 12)(font "Arial" ))
 	(text "inst" (rect 8 112 36 124)(font "Arial" ))
 	(port
 		(pt 0 32)
@@ -81,12 +81,12 @@ applicable agreement for further details.
 	)
 	(parameter
 		"Quarz_Taktfrequenz"
-		"100000000"
+		"166000000"
 		""
 		(type "PARAMETER_SIGNED_DEC")	)
 	(parameter
 		"Baudrate"
-		"14400"
+		"115200"
 		""
 		(type "PARAMETER_SIGNED_DEC")	)
 	(drawing
