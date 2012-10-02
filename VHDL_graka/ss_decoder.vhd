@@ -1,3 +1,10 @@
+--###########################################################################
+--# File:       ss_decoder.vhd                   						          #
+--# Author:     Christoph Ehemann            					                #
+--# Datum:      Sommersemester 2012                                         #
+--# Projekt:    24-Bit Grafikkarte                                          #
+--###########################################################################
+
 LIBRARY ieee;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;

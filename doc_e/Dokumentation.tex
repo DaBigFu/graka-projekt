@@ -1,0 +1,55 @@
+\documentclass[12pt,a4paper,final]{scrreprt}
+\usepackage[utf8]{inputenc}
+\usepackage[german]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{tabularx}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage[pdftex]{graphicx}
+\usepackage[section]{placeins}
+\usepackage{wrapfig}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\renewcommand{\baselinestretch}{1.50}\normalsize
+
+%Kopf- und Fußzeile
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+
+%Kopfzeile links bzw. innen
+\fancyhead[L]{\nouppercase{\leftmark}}
+%Kopfzeile rechts bzw. außen
+\fancyhead[R]{\thepage}
+%Linie oben
+\renewcommand{\headrulewidth}{0.5pt}
+
+\graphicspath{{./images/}}
+
+\begin{document}
+
+\include{Titel}
+\tableofcontents
+\newpage
+
+
+
+
+
+\include{Einleitung}
+\include{VGA}
+\include{SDRAM}
+\include{24bit}
+\include{Paa}
+\include{Zusammenfassung}
+\include{Quellenverzeichnis}
+
+\appendix
+\include{Anhang}
+
+
+\end{document}

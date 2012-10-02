@@ -1,0 +1,83 @@
+\chapter{VGA}
+\label{cha:VGA}
+
+
+\section{VGA-Standard}
+VGA (lang: Video Graphics Array) ist ein analoger Grafikstandard, welcher 1957 von IBM eingeführt wurde. Er stellte damals den Nachfolger zu den bisherigen Standards von IBM - EGA(Enhanced Graphics Adapter) und CGA (Color Graphics Adapter) - dar und wird selbst heute noch von den meisten Geräten unterstützt.
+
+\section{Funktionsweise}
+Eine VGA-Schnittstelle setzt sich im wesentlichen aus folgenden Signalen zusammen:\begin{itemize}
+\item drei analoge Signale für jeweils Rot, Grün und Blau
+\item HSYNC, dem Signal zur horizontalen Synchronisation
+\item VSYNC, dem Signal zur vertikalen Synchronisation
+\end{itemize}
+Da VGA noch aus der Zeit von CRT-Monitoren stammt, ist die Funktionsweise auch damit zu erklären. Bei CRT-Monitoren läuft der Elektronenstrahl von links oben, zeilenweise bis nach rechts unten. Auf jeder Seite des Bildschirms durchläuft er Bereiche außerhalb der sichtbaren Bildschirmfläche. Wie auf Abbildung \ref{fig:VGA-T} zu sehen ist, wird zu Beginn einer jeden Zeile der sichtbare Bereich durchlaufen, während auf den RGB-Pins analog der Farbwert übertragen wird. Anschließend folgen die Bereiche "`Front Porch"', H-Sync und "`Back Porch"'. Während diesen sollten keine Farbwerte übertragen werden, da das bei manchen Bildschirmen zu Fehlern führt. H-Sync ist ein Rechteck-Impuls an dem sich der Bildschirm orientiert und erkennt, welche Auflösung verwendet wird. Nach einem Bild, also bspw. nach 768 Bildzeilen bei einer Auflösung von 1024*768 Pixeln, folgt in der Vertikalen ein solcher Bereich außerhalb der Anzeige, welcher ebenso aus "`Front Porch"', H-Sync und "`Back Porch"' besteht.
+%
+\begin{figure}
+\centering
+\includegraphics[width=.95\textwidth]{VGAtimings} %{CS0031}
+\caption{VGA-Timings: VESA 1024*768 bei 70Hz \cite{VGAT}.}
+\label{fig:VGA-T}
+\end{figure}
+\FloatBarrier
+%
+Durch das Timing der Pulse HSYNC und VSYNC, schließt der Monitor auf die verwendete Pixel-, Monitorfrequenz, etc. zurück und man muss nun zum richtigen Zeitpunkt den gewünschten Farbwert pro Pixel aus den RGB-Signalen zusammensetzen. Aufgrund einer einfacheren Speicheradressierung, wird hier eine Auflösung von 1024*768 verwendet. Die hierfür verwendeten Timings sind Tabelle \ref{tab:VGA} zu entnehmen.
+%
+
+\begin{table}[h!]
+\caption{VGA-Timings: 1027x768 bei 60Hz}
+\label{tab:VGA}
+\centering
+\setlength{\tabcolsep}{5mm}	% separator between columns
+\def\arraystretch{1.25}			% vertical stretch factor (Standard = 1.0)
+\begin{tabular}{|l|c|c|}
+\hline
+\multicolumn{3}{|l|}{\textbf{Generelle Timings}} \\
+\hline\hline
+\multicolumn{2}{|l|}{Bildschirmwiederholungsrate} & 60Hz \\  
+\hline 
+\multicolumn{2}{|l|}{Pixelfrequenz} & 65MHz \\ 
+\hline \hline
+\multicolumn{3}{|l|}{\textbf{Horizontale Timings (Zeile)}} \\ 
+\hline \hline
+Zeilen-Abschnitt & Pixel & Zeit [$\mu$S] \\ 
+\hline 
+Sichtbarer Bereich & 1024 & 15,75 \\ 
+\hline 
+Front Porch & 24 & 0,37 \\ 
+\hline 
+HSYNC Puls & 136 & 2,09 \\ 
+\hline 
+Back porch & 160 & 2,46 \\ 
+\hline 
+Gesamte Zeile & 1344 & 20,68 \\ 
+\hline \hline
+\multicolumn{3}{|l|}{\textbf{Vertikale Timings (Bild)}} \\ 
+\hline \hline
+Bild-Abschnitt & Zeilen & Zeit [mS]\\ 
+\hline 
+Sichtbarer Bereich & 768 & 15,88 \\ 
+\hline 
+Front Porch & 3 & 0,06 \\ 
+\hline 
+VSYNC Puls & 6 & 0,12 \\ 
+\hline 
+Back Porch & 29 & 0,60 \\ 
+\hline 
+Gesamtes Bild & 806 & 16,67 \\ 
+\hline 
+\end{tabular}
+\end{table} 
+\FloatBarrier
+
+
+\section{VGA-Modul}
+Das entwickelte VGA-Modul ist verantwortlich für die Kommunikation mit dem Bildschirm und arbeitet mit den zuvor angesprochenen Timings. Es erhält die anzuzeigenden Farbwerte über den Eingangeingangsbus \emph{pixel} und gibt seine aktuelle Bildschirmposition an der SDRAM-Controller über die Signale \emph{Vcnt} und \emph{Hcnt} weiter.
+%
+\begin{figure}[h!]
+\centering
+\includegraphics[width=.95\textwidth]{VGA-Modul} %{CS0031}
+\caption{VGA-Modul}
+\label{fig:VGA-M}
+\end{figure}
+%

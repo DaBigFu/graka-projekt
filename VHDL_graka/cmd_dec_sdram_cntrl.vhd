@@ -4,7 +4,7 @@
 --# Datum:      Sommersemester 2012                                         #
 --# Projekt:    Projektarbeit                                               #
 --###########################################################################
- 
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -248,7 +248,7 @@ begin
         variable cnt2              : integer range 0 to 31 := 0;
         variable init              : integer range 0 to 15 := 0;
         variable pic_x             : integer range 0 to 2047 := 0;
-        variable bf_y              : integer range 0 to 524287 := 0; 
+        variable bf_y              : integer range 0 to 524287 := 0;
         variable rd_cnt            : integer range 0 to 31 := 0;
         variable row               : integer range 0 to 4095 := 4;
         variable rd                : integer range 0 to 31 := 0;
@@ -262,14 +262,15 @@ begin
         variable i                 : integer range 0 to 511 := 0;
         variable bank              : integer range 0 to 3 := 0;
 
-        variable cont_rec             : integer range 0 to 3 := 0;
-        variable cont_lut_addr     : integer range 0 to 256 := 0;
-        variable cont_lut_cnt      : integer range 0 to 10 := 0;
-        variable cont_state     : integer range 0 to 31 := 0;
-        variable cont_cnt       : integer range 0 to 4095 := 0;
-        variable cont_i         : integer range 0 to 511 := 0;
-        variable cont_cnt2      : integer range 0 to 31 := 0;
-        variable cont_cnt3      : integer range 0 to 511 := 0;
+        variable cont_rec      : integer range 0 to 3 := 0;
+        variable cont_lut_addr : integer range 0 to 256 := 0;
+        variable cont_lut_cnt  : integer range 0 to 10 := 0;
+        variable cont_state    : integer range 0 to 31 := 0;
+        variable cont_cnt      : integer range 0 to 4095 := 0;
+        variable cont_i        : integer range 0 to 511 := 0;
+        variable cont_cnt2     : integer range 0 to 31 := 0;
+        variable cont_cnt3     : integer range 0 to 511 := 0;
+        variable refresh_cnt   : integer range 0 to 4095 := 0;
           --variable received_pic_counter : integer range 0 to 7 := 0;
 
         variable rx_cmd_var : t_rx_com := unidentified;
@@ -296,7 +297,7 @@ begin
             rx_cmd       <= unidentified;
             pic_received <= '0';
             brightness   <= '0';
-            contrast           <= '0';
+            contrast     <= '0';
 
             pixel_counter <= 0;
             page_counter  <= 0;
@@ -317,7 +318,7 @@ begin
             cnt2          := 0;
             init          := 0;
             pic_x         := 0;
-            bf_y          := 0; 
+            bf_y          := 0;
             rd_cnt        := 0;
             row           := 4;
             rd            := 0;
@@ -328,15 +329,16 @@ begin
             brgt_cnt      := 0;
             br            := 0;
             i             := 0;
+            refresh_cnt   := 0;
 
-            cont_rec             := 0;
-            cont_lut_addr     := 0;
-            cont_lut_cnt      := 0;
-            cont_state     := 0;
-            cont_cnt       := 0;
-            cont_i         := 0;
-            cont_cnt2      := 0;
-            cont_cnt3      := 0;
+            cont_rec      := 0;
+            cont_lut_addr := 0;
+            cont_lut_cnt  := 0;
+            cont_state    := 0;
+            cont_cnt      := 0;
+            cont_i        := 0;
+            cont_cnt2     := 0;
+            cont_cnt3     := 0;
                 --received_pic_counter := 0;
 
         elsif (clk'EVENT and clk = '1') then
@@ -408,7 +410,7 @@ begin
                         ram0.we_r     <= '0';
                         ram0.we_g     <= '0';
                         ram0.we_b     <= '0';
-                    
+
                         --! waiting for rx receiver
                     elsif rx_busy = '1' then
                         rx_busy_last <= '1';
@@ -441,7 +443,7 @@ begin
 
                 ---------------------------------------------------------------------------------------------------------------------------------------------------
                 -- Fullpage-Write ---------------------------------------------------------------------------------------------------------------------------------
-                -- writes 256 received pixeldatas from RS232 to SDRAM, red and green to bank0, blue to bank1 ------------------------------------------------------
+                -- writes 256 received pixeldatas from RS232 to SDRAM, red and green to bank0, blue to bank1 and refreshes all afterwards -------------------------
                 ---------------------------------------------------------------------------------------------------------------------------------------------------
                 when s_ram_fullpagewrite =>
                     tx_cmd        <= end_of_block;
@@ -573,12 +575,65 @@ begin
                         if cnt2 < 9 then
                             cnt2 := cnt2+1;
                         else
-                            page_to_write := page_to_write +1;
-                            wr_done <= '1';
                             cnt2 := 0;
-                            wr   := 0;
+                            wr   := wr+1;
 
                         end if;
+
+                    --activating every writen bank, to refresh the memory content, since normal refresh comands don't work
+                    elsif wr = 13  then     --bank active
+                        iADDR <= std_LOGIC_VECTOR(to_unsigned(refresh_cnt, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                        wr := wr+1;
+
+                    elsif wr = 14 then      --tARFC
+                        iCS <= '1';
+                        if cnt2 < 1 then
+                            cnt2 := cnt2+1;
+                        else
+                            cnt2 := 0;
+                            wr   := wr+1;
+                        end if;
+
+                    elsif wr = 15 then
+                        iADDR <= std_LOGIC_VECTOR(to_unsigned(refresh_cnt, iADDR'length)); iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
+                        wr := wr+1;
+
+                    elsif wr = 16 then       --tRAS(min)
+                        iCS <= '1';
+                        if cnt2 < 7 then
+                            cnt2 := cnt2+1;
+                        else
+                            cnt2 := 0;
+                            wr   := wr+1;
+                        end if;
+
+                    elsif wr = 17 then       --precharge all
+                        iADDR <= "0010000000000"; iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '0';
+                        wr := wr+1;
+
+                    elsif wr = 18 then
+                        iCS <= '1';
+                        if cnt2 < 9 then
+                            cnt2 := cnt2+1;
+                        else
+                            cnt2 := 0;
+                            wr   := wr+1;
+
+                        end if;
+
+                    elsif wr = 19 then
+                        refresh_cnt := refresh_cnt+1;
+                        if refresh_cnt < (page_to_write) then
+                            wr := 13;
+                        else
+                            wr := wr+1;
+                        end if;
+
+                    elsif wr = 20 then
+                        refresh_cnt   := 0;
+                        page_to_write := page_to_write +1;
+                        wr_done <= '1';
+                        wr := 0;
 
                     else
                         wr := 0;
@@ -921,7 +976,7 @@ begin
                                 br   := br+1;
                             end if;
 
-                        elsif br = 9 then           --rd  w/o precharge command 
+                        elsif br = 9 then           --rd  w/o precharge command
                             iADDR <= "0000000000000"; iBA <= "01"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '1';
                             br := br+1;
 
@@ -1176,7 +1231,7 @@ begin
                 when s_cont =>
                     dbg_refresh_int := dbg_refresh_int+1;
                     if cont_cnt < 3072  then
-                        if cont_state = 0 then              --Bank Active (ACT) 
+                        if cont_state = 0 then              --Bank Active (ACT)
                             DRAM_DQ <= "ZZZZZZZZZZZZZZZZ";
                             iADDR   <= std_logic_vector(to_unsigned(cont_cnt, iADDR'length)); iBA <= "00"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             cont_state := cont_state+1;
@@ -1190,7 +1245,7 @@ begin
                                 cont_state := cont_state+1;
                             end if;
 
-                        elsif cont_state = 2 then           --rd  w/o precharge command 
+                        elsif cont_state = 2 then           --rd  w/o precharge command
                             iADDR <= "0000000000000"; iBA <= "00"; iDQM <= "00"; iCKE <= '1'; iCS <= '0'; iRAS <= '1'; iCAS <= '0'; iWE <= '1';
                             cont_state := cont_state+1;
 
@@ -1234,7 +1289,7 @@ begin
 
                             end if;
 
-                        elsif cont_state = 7 then              --Bank Active (ACT) 
+                        elsif cont_state = 7 then              --Bank Active (ACT)
                             iADDR <= std_logic_vector(to_unsigned(cont_cnt, iADDR'length)); iBA <= "01"; iDQM <= "11"; iCKE <= '1'; iCS <= '0'; iRAS <= '0'; iCAS <= '1'; iWE <= '1';
                             cont_state := cont_state+1;
 
@@ -1356,7 +1411,7 @@ begin
 
 
 
-                        elsif cont_state = 18 then       --write 
+                        elsif cont_state = 18 then       --write
                             iCS <= '1';
                             if cont_cnt3 < 259 then
                                 ram1.addr <= cont_cnt3;
@@ -1418,7 +1473,7 @@ begin
                             cont_cnt3  := cont_cnt3+1;
                             cont_state := cont_state+1;
 
-                        elsif cont_state = 25 then       --write 
+                        elsif cont_state = 25 then       --write
                             iCS <= '1';
                             if cont_cnt3 < 259 then
                                 ram1.addr <= cont_cnt3;

@@ -1,0 +1,19 @@
+\BOOKMARK [0][-]{chapter.1}{Einleitung}{}% 1
+\BOOKMARK [0][-]{chapter.2}{VGA}{}% 2
+\BOOKMARK [1][-]{section.2.1}{VGA-Standard}{chapter.2}% 3
+\BOOKMARK [1][-]{section.2.2}{Funktionsweise}{chapter.2}% 4
+\BOOKMARK [1][-]{section.2.3}{VGA-Modul}{chapter.2}% 5
+\BOOKMARK [0][-]{chapter.3}{SDRAM-Controller}{}% 6
+\BOOKMARK [1][-]{section.3.1}{Synchronous Dynamic Random Access Memory}{chapter.3}% 7
+\BOOKMARK [1][-]{section.3.2}{Speicherorganisation}{chapter.3}% 8
+\BOOKMARK [1][-]{section.3.3}{Speicherinterface}{chapter.3}% 9
+\BOOKMARK [1][-]{section.3.4}{Befehlssequenzen}{chapter.3}% 10
+\BOOKMARK [1][-]{section.3.5}{SDRAM-Controller-Modul}{chapter.3}% 11
+\BOOKMARK [0][-]{chapter.4}{24-Bit Erweiterung}{}% 12
+\BOOKMARK [1][-]{section.4.1}{DAC per Widerstandsnetzwerk}{chapter.4}% 13
+\BOOKMARK [1][-]{section.4.2}{Simulation}{chapter.4}% 14
+\BOOKMARK [1][-]{section.4.3}{Platinen-Design}{chapter.4}% 15
+\BOOKMARK [1][-]{section.4.4}{Messergebnisse}{chapter.4}% 16
+\BOOKMARK [0][-]{chapter.5}{Einbindung in Bildverarbeitung von C. Paa}{}% 17
+\BOOKMARK [0][-]{chapter.6}{Zusammenfassung}{}% 18
+\BOOKMARK [0][-]{appendix.A}{Anhang}{}% 19

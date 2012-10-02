@@ -1,0 +1,99 @@
+\chapter{24-Bit Erweiterung}
+\label{cha:24bit}
+
+Da die Hardware auf dem DE0-Board nur eine Farbauflösung von 12-Bit ermöglicht, musste dieses über eine weitere Platine erweitert werden. Die digital-analog Wandlung für die Erzeugung der analogen Farbwerte des VGA-Anschluss erfolgt über ein Widerstandsnetzwerk (ähnlich einem R2R-Netzwerk), sowohl auf dem DE0-Board als auch auf dem Erweiterungsboard.
+\section{DAC per Widerstandsnetzwerk}
+Grundlegend funktionieren ein solcher DAC durch die parallele Verschaltung von Widerständen. Durch den 75$\Omega$ Eingangswiderstand des Monitors ergibt sich ein Spannungsteiler, welcher das Ausgangssignal im gewünschten Spannungsbereich zwischen 0V und 0,7V hält, trotz der 3,3V Ausgangsspannung des FPGAs. Würde man beispielsweise Bit0, Bit1 und Bit2 auf den logischen Wert '1' setzen, ergibt sich eine Parallelschaltung des 4k$\Omega$, des 2k$\Omega$ und des 1k$\Omega$ Widerstands, also R=571,43$\Omega$. Man erhält für U$_{A}$=$\frac{3,3V*R_L}{R+R_L}=\frac{3,3V*75\Omega}{(571,43+75)\Omega}=0,3829V$. Zu erwarten wären $\frac{7}{15}*0,7V=0,3267V$. Dies ist zwar nicht 100\% genau, aber man kommt so zumindest bei Vollaussteuerung auf 0,7V.
+
+Anhand dieser Formeln wurden nun Widerstandswerte für ein derartiges Netzwerk mit 8 Bit errechnet.
+
+\begin{equation}
+Bit0: R_0=\frac{3,3V*75\Omega*256}{0,7V}-75\Omega=90,44k\Omega
+\end{equation}
+\begin{equation}
+Bit1: R_0=\frac{3,3V*75\Omega*128}{0,7V}-75\Omega=45,18k\Omega
+\end{equation}
+\begin{equation}
+Bit2: R_0=\frac{3,3V*75\Omega*64}{0,7V}-75\Omega=22,55k\Omega
+\end{equation}
+\begin{equation}
+Bit3: R_0=\frac{3,3V*75\Omega*32}{0,7V}-75\Omega=11,24k\Omega
+\end{equation}
+\begin{equation}
+Bit4: R_0=\frac{3,3V*75\Omega*16}{0,7V}-75\Omega=5,58k\Omega
+\end{equation}
+\begin{equation}
+Bit5: R_0=\frac{3,3V*75\Omega*8}{0,7V}-75\Omega=2,75k\Omega
+\end{equation}
+\begin{equation}
+Bit6: R_0=\frac{3,3V*75\Omega*4}{0,7V}-75\Omega=1,34k\Omega
+\end{equation}
+\begin{equation}
+Bit7: R_0=\frac{3,3V*75\Omega*2}{0,7V}-75\Omega=632\Omega
+\end{equation}
+
+\begin{wraptable}{O}{0.3\columnwidth}
+\begin{centering}
+\caption{R0-R7}
+\label{tab:R0R7}
+\begin{tabular}{|c|c|}
+\hline
+R0 & 68,1k\\
+\hline
+R1 & 39,0k\\
+\hline
+R2 & 18,0k\\
+\hline
+R3 & 9,09k\\
+\hline
+R4 & 4,30k\\
+\hline
+R5 & 2,21k\\
+\hline
+R6 & 1,10k\\
+\hline
+R7 & 560$\Omega$\\
+\hline
+\end{tabular}
+\par % Add for spacing
+\end{centering}
+\end{wraptable}
+
+Man erkennt, dass sich die Widerstandswerte ungefähr verdoppeln, also wurden nun passende Widerstände aus einer E-Reihe ausgewählt. Diese Auswahl wurde durch das Sortiment des Lieferanten etwas eingeschränkt, aber mit den Widerständen in Tabelle \ref{tab:R0R7} konnten vernünftige Ergebnisse erzielt werden.
+
+
+\FloatBarrier
+
+\section{Simulation}
+Die Schaltung wurde mit dem Simulationsprogramm LTspice der Firma Linear Technology simuliert. In der Simulation zählen Spannungsquellen digital von 0 bis 255 und liefern das Ergebnis in Abbildung \ref{fig:Simu}. Die extremen Ausschläge nach unten hängen mit der Simulationsmethode zusammen und haben nichts mit dem realen Ergebnis zu tun. Ansonsten ist gut zu erkennen, dass der gesamte Spannungsbereich von $0{,}0$V bis $0{,}7$V durchlaufen wird. Größtenteils ergibt sich eine einheitliche Treppenform - bis auf ein paar vereinzelte Stellen, was auf die Widerstandswahl zurück gehen. Verwendet man einheitlich Vielfache von 560$\Omega$, zeigt die Simulation absolut äquidistante Spannungspegel. Dies war leider bei dem verwendeten Lieferanten nicht möglich. 
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=1\textwidth]{Simulation} %{CS0031}
+\caption{Simulationsergebnis}
+\label{fig:Simu}
+\end{figure}
+\FloatBarrier
+
+\section{Platinen-Design}
+Anhand der Simulationsergebnisse wurde nun die Schaltung mit dem Layout-Programm Eagle entworfen und ein Board-layout erstellt. Es ist so entworfen, dass es später senkrecht auf dem Board im 40-Pin-Header \emph{GPIO1} steckt und so noch Platz für Erweiterungen im \emph{GPIO0} bleibt.
+
+\begin{figure}[h!]
+        \centering
+        \begin{subfigure}[b]{0.5\textwidth}
+                \centering
+                \includegraphics[width=\textwidth]{board_schem}
+                \caption{Schaltplan}
+                \label{fig:schem}
+        \end{subfigure}~\begin{subfigure}[b]{0.4\textwidth}
+                \centering
+                \includegraphics[width=\textwidth]{board_layout}
+                \caption{Platinenlayout}
+                \label{fig:layout}
+        \end{subfigure} 
+        \caption{Pictures of animals}\label{fig:board}
+\end{figure}
+
+\section{Messergebnisse}
+Leider ist die bestellte Platine nicht rechtzeitig bei mir eingetroffen und es sind so keine Messungen vor der Abgabe möglich. Die Platine wird nachgereicht.
+

@@ -1,0 +1,234 @@
+\chapter{SDRAM-Controller}
+\label{cha:SDRAM}
+
+Da die interne Speichergröße des verwendeten Cyclone 3 FPGA nur 516 kBit beträgt und ein 1024*768 Pixel großes Bild mit 24 Bit Farbauflösung auf eines Größe von $\ 1024*768*24=18{,}87 MBit=18MiBit$ kommt, wird auf den verbauten 64MiBit großen Zentel SDRAM zurückgegriffen.
+
+\section{Synchronous Dynamic Random Access Memory}
+Synchronous Dynamic Random Access Memory (kurz: SDRAM) ist eine 1997 eingeführt Speichertechnologie, welche vor allem in PCs zur Anwendung kam. Sie verwendet Kondensatoren als speicherndes Element, was zu einem flüchtigen (volatile) Speichermedium führt. Das "`Synchronous"' im Namen geht auf die Verwendung eines Taktes zur Synchronisierung des Speichers zurück. Da sich die Speicherkondensatoren über die Zeit entladen, benötigen die Speicherzellen in bestimmten Zeitabständen eine Erneuerung der gespeicherten Daten, daher das "`Dynamic"' im Namen. "`Random Access"' bedeutet, dass man auf zufällige Zellen im Speicher zugreifen kann, im Gegensatz zu Speichern mit sequenziellen Zugriffen (Vgl. FIFO).
+
+\section{Speicherorganisation}
+Der verwendete Speicher besteht aus vier Bänken, welche jeweils in 4096 Zeilen mit je 256 Spalten unterteilt sind. Jeder der derartig adressierten Speicherbereiche fasst 16 Bit, was zu einem Gesamtspeichervolumen von  $\ 4*4096*256*16Bit=67108864Bit~(/2^{20}=64MiBit)$. Verdeutlicht wird die nochmals durch Abbildung \ref{fig:RAM-O}.
+
+%
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.8\textwidth]{RAM-Aufbau} %{CS0031}
+\caption{SDRAM-Organisation}
+\label{fig:RAM-O}
+\end{figure}
+%
+
+\section{Speicherinterface}
+Die Kommunikation mit dem SDRAM läuft über die Pins in Tabelle \ref{tab:RAM-P} (Richtung aus Sicht des Controllers).
+\begin{table}[h!]
+\caption{SDRAM-Pins}
+\label{tab:RAM-P}
+\centering
+\setlength{\tabcolsep}{1ex}
+\def\arraystretch{1.20}
+\setlength{\tabcolsep}{1ex}
+\small
+\begin{tabular}{|l|c|c|p{7cm}|}
+\hline 
+Pin-Name & Richtung & Busbreite & Aufgabe \\ 
+\hline 
+DQ & I/O & 16 & Daten Ein- und Ausgang. \\ 
+\hline 
+ADDR & Ausgang & 13 & Gibt je nach Befehl Zeilen-(A0-A11) oder Spaltenadresse(A0-A7) an. Wärend einem Write- oder Read-Befehlt steuert A10 die auto-precharge-Option. \\ 
+\hline 
+BA & Ausgang & 2 & Bank Address wählt die zu verwendende Bank aus. \\ 
+\hline 
+DQM & Ausgang & 2 & Gibt die Möglichkeit die oberen oder unteren 8 Bit des Adress-Bus hochohmig zu schalten und kann damit zur Maskierung verwendet werden. DQM1 steuert dabei DQ15-DQ8 und DQM0 entsprechend DQ7-DQ0.\\ 
+\hline 
+WE & Ausgang & 1 & Steuert den Kommando-Interpreter.\\ 
+\hline 
+CAS & Ausgang & 1 & Steuert den Kommando-Interpreter. \\ 
+\hline 
+RAS & Ausgang & 1 & Steuert den Kommando-Interpreter. \\ 
+\hline 
+CS & Ausgang & 1 & Chip Select aktiviert (logisch '0') oder deaktiviert den Kommando-Interpreter (logisch '1')\\ 
+\hline 
+CKE & Ausgang & 1 & Clock Enable aktiviert den Takt-Eingang des RAMs. Kommt auch zum Einsatz bei speziellen Betriebsmodi wie Power-Down, Sleep, etc. \\
+\hline 
+RAM\_CLK & Ausgang & 1 & RAM-Takt-Eingang. \\
+\hline 
+\end{tabular} 
+\end{table}
+
+
+\section{Befehlssequenzen}
+Prinzipiell werden Befehle gestartet, indem bei korrekt angelegten Daten und Adressen das CS-Signal für einen Takt auf logisch '0' gesetzt wird und anschließend die geforderten Timings erfüllt werden.
+\subsubsection*{Initialisierungssequenz}
+Sobald ein stabiler Takt am SDRAM anliegt, muss dieser zuerst initialisiert und konfiguriert werden. Diese Sequenz muss laut Datenblatt\cite{ZENT} aussehen wie in Tabelle \ref{tab:init-seq}.
+
+\begin{table}[h!]
+\caption{Initialisierungssequenz}
+\label{tab:init-seq}
+\centering
+\setlength{\tabcolsep}{1ex}
+\def\arraystretch{1.20}
+\setlength{\tabcolsep}{1ex}
+\small
+\begin{tabularx}{\textwidth}{|ccccc|}
+\hline 
+ADDR & BA & DQM & RAS\& CAS\& WE & CS\\ 
+\hline 
+x``0000'' & ``00" & ``11'' & ``000'' & '1'\\ 
+\multicolumn{5}{|l|}{Power-UP: 200$\mu$s Delay} \\ 
+\hline 
+x``0400'' & ``00" & ``11'' & ``010'' & '0'  \\ 
+\multicolumn{5}{|l|}{Precharge All: schließt alle Zeilen auf allen Bänken} \\
+\hline 
+x``XXXX'' & ``00" & ``11'' & ``XXX'' & '1' \\
+\multicolumn{5}{|l|}{t$_{RP}$: 18ns Delay} \\ 
+\hline 
+x``0000'' & ``00" & ``11'' & ``001'' & '0'\\ 
+\multicolumn{5}{|X|}{Refresh All: Erneuert den Speicherinhalt einer Zeile auf allen vier Bänken. Die Zeilen werden intern im SDRAM gezählt, daher müssen diese nicht adressiert werden. Nach Abschluss des Refreshs werden diese wieder geschlossen.} \\
+\hline 
+x``XXXX'' & ``00" & ``11'' & ``XXX'' & '1' \\ 
+\multicolumn{5}{|l|}{t$_{ARFC}$: 60ns Delay} \\
+\hline
+x``0000'' & ``00" & ``11'' & ``001'' & '0'\\ 
+\multicolumn{5}{|l|}{ Refresh All.} \\
+\hline 
+x``XXXX'' & ``00" & ``11'' & ``XXX'' & '1'\\
+\multicolumn{5}{|l|}{ t$_{ARFC}$: 60ns Delay} \\ 
+\hline 
+x``0037'' & ``00" & ``11'' & ``000'' & '0'\\
+\multicolumn{5}{|X|}{Mode Register Set: Setzt die Grundeinstellungen des SDRAM per ADDR.\begin{itemize}
+\item A2-A0: Burst-Länge, hier: Full Page
+\item A3: Burst-Typ, hier: sequenziell
+\item A6-A4: CAS-Latenz, hier: 3
+\item A9: Burst-Modus für Schreibzugriffe, hier: gleich wie Lesezugriff
+\end{itemize}} \\ 
+\hline 
+x``XXXX'' & ``00" & ``11'' & ``XXX'' & '1'\\ 
+\multicolumn{5}{|l|}{r$_{MRD}$: 2 Taktzyklen} \\
+\hline 
+\end{tabularx} 
+\end{table}
+\FloatBarrier
+
+\subsubsection*{Lesesequenz}
+Unabhängig von Burst-Länge haben normale Lesezugriffe(Tab. \ref{tab:lese-seq} ) einen einheitlichen Ablauf. Es gibt auch Sonderfälle, die es einem beispielsweise ermöglichen auf die selbe Zeile in unterschiedlichen Bänken sehr schnell zuzugreifen, aber diese werden hier nicht verwendet.
+
+\begin{table}[h!]
+\caption{Lesesequenz}
+\label{tab:lese-seq}
+\centering
+\setlength{\tabcolsep}{1ex}
+\def\arraystretch{1.20}
+\setlength{\tabcolsep}{1ex}
+\small
+\begin{tabularx}{\textwidth}{|ccccc|}
+\hline 
+ADDR & BA & DQM & RAS\&CAS\&WE & CS\\ 
+\hline 
+Speicherzeile & Bank & ``11'' & ``011'' & '0'\\
+\multicolumn{5}{|X|}{Bank Active: Aktiviert die angegebene Speicherzeile in der angegebenen Bank und ermöglicht so Lese- und Schreibzugriffe.} \\ 
+\hline 
+x``XXXX'' & ``XX" & ``11'' & ``XXX'' & '1'  \\ 
+\multicolumn{5}{|l|}{t$_{RCD}$: 18ns Delay} \\
+\hline 
+Speicherspalte & Bank & ``00'' & ``101'' & '0' \\
+\multicolumn{5}{|X|}{Read ohne Precharge(A10='0'), der Burst beginnt in der angegebenen Spalte. Bei Lese-Zugriffen hat DQM ebenfalls eine CAS-Latenz, also muss auch DQM nun schon auf ``00" gesetzt werden.} \\ 
+\hline 
+x``XXXX'' & ``XX" & ``00'' & ``XXX'' & '1'\\ 
+\multicolumn{5}{|X|}{Einhaltung der angegebenen CAS-Latenz.} \\
+\hline 
+x``XXXX'' & ``XX" & ``00'' & ``XXX'' & '1'\\ 
+\multicolumn{5}{|X|}{Jetzt folgen auf dem DQ-Bus bei jedem Takt die angeforderten Daten, so lange bis die angegebene Burst-Länge erreicht ist.} \\
+\hline 
+x``XXXX'' & Bank & ``11'' & ``010'' & '0'\\ 
+\multicolumn{5}{|X|}{Precharge selected bank: Schließt alle Zeilen auf der ausgewählten Bank.} \\
+\hline 
+x``XXXX'' & ``XX" & ``11'' & ``XXX'' & '1'\\ 
+\multicolumn{5}{|X|}{t$_{RP}$: 18ns Delay} \\
+\hline 
+\end{tabularx} 
+\end{table}
+\FloatBarrier
+
+\subsubsection*{Schreibsequenz}
+Ebenso wie die Lesesequenzen sind Schreibsequenzen(Tab. \ref{tab:schr-seq} ) vom Ablauf her grundlegend gleich, es müssen nur abhängig von Burst-Länge genug Daten bereitgestellt werden.
+
+\begin{table}[h!]
+\caption{Schreibsequenz}
+\label{tab:schr-seq}
+\centering
+\setlength{\tabcolsep}{1ex}
+\def\arraystretch{1.20}
+\setlength{\tabcolsep}{1ex}
+\small
+\begin{tabularx}{\textwidth}{|ccccc|}
+\hline 
+ADDR & BA & DQM & RAS\&CAS\&WE & CS\\ 
+\hline 
+Speicherzeile & Bank & ``11'' & ``011'' & '0'\\
+\multicolumn{5}{|X|}{Bank Active.} \\ 
+\hline 
+x``XXXX'' & ``XX" & ``11'' & ``XXX'' & '1'  \\ 
+\multicolumn{5}{|l|}{t$_{RCD}$: 18ns Delay} \\
+\hline 
+Speicherspalte & Bank & ``00'' & ``100'' & '0' \\
+\multicolumn{5}{|X|}{Write ohne Precharge(A10='0'), der Burst beginnt in der angegebenen Spalte. Bei Schreib-Zugriffen besteht keine CAS-Latenz, also muss in diesem Takt schon die erste Speicherzelle beschrieben werden} \\ 
+\hline 
+x``XXXX'' & ``XX" & ``00'' & ``XXX'' & '1'\\ 
+\multicolumn{5}{|X|}{Falls die Bust-Länge größer 1 ist, werden nun die folgenden Speicherzellen beschrieben.} \\
+\hline 
+x``XXXX'' & ``XX" & ``11'' & ``110'' & '0'\\ 
+\multicolumn{5}{|X|}{Burst-Stop: Bei meiner Arbeit hat sich herausgestellt, dass der verwendete SDRAM bei einem Full Page Write nach einer vollen Zeile wieder zur Spalte 0 springt und dort nochmals 5 Zellen mit fehlerhaften Daten beschreibt, bis der Schreibzugriff tatsächlich endet. Also wird dieser per Burst-Stop abgebrochen.} \\
+\hline 
+x``XXXX'' & ``XX" & ``11'' & ``XXX'' & '1'\\ 
+\multicolumn{5}{|X|}{t$_{RDL}$: 2 Takte} \\
+\hline 
+x``XXXX'' & Bank & ``11'' & ``010'' & '0'\\ 
+\multicolumn{5}{|X|}{Precharge selected bank.} \\
+\hline 
+x``XXXX'' & ``XX" & ``11'' & ``XXX'' & '1'\\ 
+\multicolumn{5}{|X|}{t$_{RP}$: 18ns Delay} \\
+\hline 
+\end{tabularx} 
+\end{table}
+\FloatBarrier
+
+\subsubsection*{Refresh}
+
+Damit während der Bildübertragung vom PC zum DE0-Board die Daten im SDRAM nicht verfälscht werden, folgt nach jedem Full-Page-Write ein Refresh des gesamten RAMs. Bei jedem "`Auto Refresh All"' Befehl wird eine Zeile auf allen vier Bänken erneuert und danach sofort wieder geschlossen. Diese Zeile ist in einem RAM-internen Zähler hinterlegt.
+
+\begin{table}[h!]
+\caption{Auto Refresh}
+\label{tab:ref-seq}
+\centering
+\setlength{\tabcolsep}{1ex}
+\def\arraystretch{1.20}
+\setlength{\tabcolsep}{1ex}
+\small
+\begin{tabularx}{\textwidth}{|ccccc|}
+\hline 
+ADDR & BA & DQM & RAS\&CAS\&WE & CS\\ 
+\hline 
+x``XXXX'' & ``XX'' & ``11'' & ``001'' & '0'\\
+\multicolumn{5}{|X|}{Auto refresh} \\ 
+\hline 
+x``XXXX'' & ``XX" & ``11'' & ``XXX'' & '1'  \\ 
+\multicolumn{5}{|l|}{t$_{ARFC}$: 60ns Delay} \\
+\hline 
+\end{tabularx} 
+\end{table}
+\FloatBarrier
+
+Da der Refresh-Befehl bei meinem RAM absolut nicht funktionierte, erneuere ich den Speicherinhalt, indem ich nach jeder empfangenen Zeile sämtliche bisher empfangenen Zeilen im RAM nacheinander aktiviere und anschließend wieder deaktiviere. Diese Methode dauert zwar länger, überzeugt jedoch durch Funktionalität.
+\newpage
+\section{SDRAM-Controller-Modul}
+
+\begin{wrapfigure}{r}{0.4\textwidth}
+\label{fig:SDRAM}
+  \begin{center}
+    \includegraphics[width=0.4\textwidth]{SDRAM-Modul}
+  \end{center}
+  \caption{SDRAM-Modul}
+\end{wrapfigure}
+
+Um sich die Entwicklung eines weiteren Kommunikationskanals zu ersparen, wurde das SDRAM-Controller in den Kommando-Decoder der RS232-Schnittstelle von Herrn Paa integriert. Die Namen der Schnittstellen zum SDRAM tragen den selben Namen wie im Kapitel Speicherinterface angeführt. Der Bus \emph{pixel} gibt die per \emph{Vcnt} und \emph{Hcnt} von der VGA-Schnitt\-stel\-le geforderten Farbwerte an diese zurück. Die restlichen Ein- und Ausgänge werden für die RS232-Kommunikation verwendet.
+\FloatBarrier
