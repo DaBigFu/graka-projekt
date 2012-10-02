@@ -83,15 +83,17 @@
 \tableofcontents
 \chapter{Über das Projekt}
 \section{Zielsetzung}
-Ziel des Projektes ist es, dem von Aleksej Wolf erstellten (M)JPEG decoder\cite{aleksej10} Möglichkeiten der Bildverarbeitung hinzuzufügen.
+Ziel des Projektes war es, dem von Aleksej Wolf erstellten (M)JPEG decoder\cite{aleksej10} Möglichkeiten der Bildverarbeitung hinzuzufügen.
 
 \section{Zusammenfassung der Veränderungen}
-Zunächst wurde das Projekt so verändert, dass es anstatt 2 Entwicklungsboards und einer FTDI Platine auf einem einzelnen Terasic DE0 Board läuft. Hierzu wurde die Taktrate auf 100Mhz erhöht sowie die Ansteuerung des SDRAMs von Herrn Ehemann komplett neu entwickelt. Zur Übertragung der Daten wird die auf dem Board vorhandene RS-232 UART Schnittstelle verwendet. Hierzu ist es lediglich notwendig eine Buchse am Board anzulöten, die Notwendigen Signalpegel sind bereits vorhanden. Auf dem Board wurde ein frei verfügbarer RS-232 UART core verwendet.\cite{miller09} Als Frontend wird hierfür ein Matlab GUI verwendet. Diese Übernimmt das übermitteln der Bilddaten an das Board sowie das Konfigurieren der Filtereinstellungen.
+Zunächst wurde das Projekt so verändert, dass es anstatt 2 Entwicklungsboards und einer FTDI Platine auf einem einzelnen Terasic DE0 Board läuft. Hierzu wurde die Taktrate von 50 Mhz auf 166 Mhz erhöht. Außerdem wurde von Herrn Ehemann eine Ansteuerung für den auf dem DE0 Board vorhandenen SDRAM entwickelt. Zur Übertragung der Daten wird die auf dem Board vorhandene RS-232 UART Schnittstelle verwendet. Hierzu ist es lediglich notwendig eine Buchse am Board anzulöten, die Notwendigen Signalpegel sind bereits vorhanden. Auf dem Board wurde ein frei verfügbarer RS-232 UART core verwendet.\cite{miller09} Als Frontend wird hierfür ein Matlab GUI verwendet. Diese übernimmt das Übermitteln der Bilddaten an das Board sowie das Konfigurieren der Filtereinstellungen.
 
 \chapter{Matlab GUI}
+\label{sec:ml_gui}
 Da die Grafikkarte nun einige Funktionen bekommen soll, welche Parameter erfordern ist eine Kommunikation zwischen dem Board und einem PC notwendig. Um die Übermittlung von Befehlen und Daten möglichst Benutzerfreundlich zu gestalten wurde entschieden, diese Kommunikation auf Seiten des PCs mit einem GUI zu steuern. Als Basis für das Serielle Kontroll- GUI wurde Mathworks Matlab gewählt, da es damit erstens einfach ist mithilfe des mitgelieferten GUIDE Tools GUIs zu erstellen und es vorgefertigte Funktionen zur seriellen Verbindung gibt. Zunächst wurde eine Klasse namens \emph{serial\_con} entwickelt welche die Serielle Verbindung kontrolliert und die den aktuellen Status des Boards überwacht. Diese Klasse regelt wann welche Schreib und Leseoperationen am Board durchgeführt werden dürfen bzw. müssen. Die Graphische Benutzeroberfläche bietet die Möglichkeit Bilder an das Board zu übertragen und die Parameter der Bildverarbeitungsfilter anzupassen.
 
 \section{Communication setup}
+\label{sec:com_set}
 Das \emph{communication setup} Panel dient dazu zu Beginn der Kommunikation den RS-232 Port des PCs einzustellen. Er übermittelt Einstellungen an das \emph{serial\_con} Objekt und steuert das Öffnen und schließen des Ports. Außerdem steuert der Zustand des Ports welche Elemente des GUI aktiv sind. Ist der Port noch geschlossen sieht das \emph{communication setup} Panel folgendermaßen aus:
 
 \begin{figure}[ht]
@@ -357,13 +359,25 @@ function hist_stretch_calc(
 end function hist_stretch_calc;
 \end{lstlisting}
 
-Hierbei werden zunächst in Zeile 15-17 die Signale $\ g g_{min}, g_{max}$ in den Datentyp \emph{signed} überführt, um bei der Berechnung von Zähler $\ g-g_{min} $ und Nenner $\ g_{max} - g_{min} $ sicher zu stellen, dass keine Überläuft stattfinden. Die in Gleichung \ref{eqtrans1} beschriebenen Wertebereiche werden von den \emph{if, elsif, else} Statements in Zeilen 19, 21 und 26 behandelt. Gilt  $\ g_{min} \leq g < g_{max}$ werden die beiden Dividenden \emph{div1} und \emph{div2} erstellt. Da der Faktor 256 in Binärer Arithmetik einer einfachen Verschiebung entspricht wird er direkt in den Nenner Multipliziert indem dieser in Zeile 22 um 8 Stellen nach Links verschoben wird. Hierdurch kann die Division in Zeile 24 ohne die Verwendung von Fest- oder Gleitkommazahlen durchgeführt werden, was zusätzliche Libraries erfordert hätte.\\
-Die Berechnete Transformationskennlinie wird angewendet, indem  256 Pixel aus dem SDRAM ausgelesen werden und jeder Farbwert durch den Wert in der LUT ersetzt wird. Dies wird dadurch vereinfacht, dass der 8 Bit Farbwert aus dem SDRAM direkt die 8 Bit Adresse des neuen Farbwertes in der LUT Darstellt.
+Hierbei werden zunächst in Zeile 15-17 die Signale $\ g,\:g_{min},\:g_{max}$ in den Datentyp \emph{signed} überführt, um bei der Berechnung von Zähler $\ g-g_{min} $ und Nenner $\ g_{max} - g_{min} $ sicher zu stellen, dass keine Überläuft stattfinden. Die in Gleichung \ref{eqtrans1} beschriebenen Wertebereiche werden von den \emph{if, elsif, else} Statements in Zeilen 19, 21 und 26 behandelt. Gilt  $\ g_{min} \leq g < g_{max}$ werden die beiden Dividenden \emph{div1} und \emph{div2} erstellt. Da der Faktor 256 in Binärer Arithmetik einer einfachen Verschiebung entspricht wird er direkt in den Nenner Multipliziert indem dieser in Zeile 22 um 8 Stellen nach Links verschoben wird. Hierdurch kann die Division in Zeile 24 ohne die Verwendung von Fest- oder Gleitkommazahlen durchgeführt werden, was zusätzliche Libraries erfordert hätte.\\
+Die Berechnete Transformationskennlinie wird angewendet, indem  256 Pixel aus dem SDRAM ausgelesen werden und jeder Farbwert durch den Wert in der LUT ersetzt wird. Dies wird dadurch vereinfacht, dass der 8 Bit Farbwert aus dem SDRAM direkt die 8 Bit Adresse des neuen Farbwertes in der LUT Darstellt. Außerdem ist die LUT drei mal in verschiedenen RAMs vorhanden, was dafür sorgt, dass alle 3 Farbkanäle eines Pixels gleichzeitig ersetzt werden können.
 
+\chapter{Verwendung des Projektes}
+\section{Benötigte Software}
+Zur Verwendung des Projektes wird folgende Soft- und Hardware benötigt:
+\begin{itemize}
+\item Altera Quartus (Projekt wurde mit Quartus 12.0 erstellt)
+\item MathWorks Matlab (Projekt wurde mit Matlab R2011a erstellt)
+\item terasic DE0 Entwicklungsboard mit angelötetem Serial Port
+\item VGA Monitor mit mind. 1024x768 Pixeln
+\item evtl. 24 Bit Erweiterungsplatine für erhöhte Farbtiefe
+\end{itemize}
 
-%\section{Nachbarschaftsoperatoren}
-%Diese Operatoren berechnen den neuen Farbwert eines Pixels aus den Farbwerten %seiner Umgebung. Hierzu werden Filtermasken mit dem Bild gefaltet. Als Beispiel 
-%für einen derartigen Operator wurde der sogenannte \emph{Sobel} Operator %implementiert, welcher zur Kantenerkennung verwendet wird. Er basiert auf einem %3x3 Filterkernel, welcher jedoch Separierbar ist und dadurch zu zwei 3x1 Vektoren %vereinfacht wird.
+\section{Inhalt der CD}
+Die CD Enthält dieses Dokument sowie einen Order \emph{graka\-projekt} der die Quelldateien für das Board und für die Matlab GUI enthält. Die Ordner \emph{doc\_p} und \emph{doc\_e} enthalten die Quelldateien der beiden Dokumentationen im \TeX{} Format. Zudem sind noch 2 Testbilder in Originalform sowie mit entferntem Header zur Übertragung enthalten. Der Order \emph{VHDL\_graka} enthält zusätzlich zum Quellcode auch eine bereits kompilierte .sof Datei um das Board programmieren zu können.
+
+\section{Inbetriebnahme}
+Zunächst muss das Quartus-Projekt synthetisiert und Programmiert werden. Hierzu die Projektdatei \emph{VHDL\_graka.qpf} mit einer aktuellen Version von Altera Quartus öffnen und \emph{start compilation} klicken. Dann mit dem USB Programmer das Board Programmieren. Um Daten an das Board zu übertragen wird die Matlab GUI benötigt. Diese wird gestartet indem man in Matlab in den Order \emph{ml\_gui} wechselt und die Datei \emph{graka\_gui.m} mit Rechtsklick > Run startet. Die Verwendung der GUI ist in Kapitel \ref{sec:ml_gui} beschrieben. Als Testbilder werden Bitmap Bilder mit einer Auflösung von 1024x768 Pixeln und einer Farbtiefe von 24 Bit verwendet, deren Header zuvor entfernt wurde. Wenn ein Bild übertragen wurde und man einen Filter angewandt hat Befindet man sich auf der zweiten Speicherbank. Wenn man einen anderen Filter oder einen Filter mit abweichenden Einstellungen anwenden möchte muss man zuerst wieder die Speicherbank Wechseln. Dies geschieht durch betätigen des Reset, welcher auf Button 2 des DE0 Boards liegt. Zu beachten ist, dass während man das Ergebnis des Filters betrachtet der Inhalt der ersten Speicherbank nicht aufgefrischt wird und deshalb langsam verfällt. Deshalb ist es sinnvoll das Bild neu zu übertragen.\\Falls die dieser Dokumentation beigelegte CD nicht greifbar ist oder eine evtl. vorhandene neuere Version des Projektes verwendet werden soll kann diese aus der GitHub repository heruntergeladen werden\footnote{\url{https://github.com/youRFate/graka-projekt/downloads}}. 
 
 \chapter{Zusätzliche Informationen zum Projekt}
 Das Projekt wurde zusammen mit dem Projekt \emph{24 Bit Grafikkarte} von Herrn Christoph Ehemann entwickelt. Zur einfacheren Kollaboration kam das open-source Versionsverwaltungssystem git\footnote{http://git-scm.com/} zum Einsatz. Als Repository Host wurde github\footnote{https://github.com/} eingesetzt. Sämtliche Versionen des Quellcodes sind deshalb in der git Repository \url{https://github.com/youRFate/graka-projekt.git} verfügbar. Dieses Dokument wurde mit \LaTeX{} erstellt\footnote{http://www.latex-project.org/}.

@@ -1,19 +1,23 @@
 \select@language {ngerman}
-\contentsline {chapter}{\numberline {1}\IeC {\"U}ber das Projekt}{3}
-\contentsline {section}{\numberline {1.1}Zielsetzung}{3}
-\contentsline {section}{\numberline {1.2}Zusammenfassung der Ver\IeC {\"a}nderungen}{3}
-\contentsline {chapter}{\numberline {2}Matlab GUI}{4}
-\contentsline {section}{\numberline {2.1}Communication setup}{4}
-\contentsline {section}{\numberline {2.2}write file}{6}
-\contentsline {section}{\numberline {2.3}filter options}{7}
-\contentsline {section}{\numberline {2.4}debug options}{8}
-\contentsline {chapter}{\numberline {3}RS-232 Kommando Empf\IeC {\"a}nger}{9}
-\contentsline {section}{\numberline {3.1}Ver\IeC {\"a}nderung der Hardware}{10}
-\contentsline {section}{\numberline {3.2}Daten\IeC {\"u}bertragung}{11}
-\contentsline {chapter}{\numberline {4}Bildverarbeitung}{12}
-\contentsline {section}{\numberline {4.1}Punktoperatoren}{12}
-\contentsline {section}{\numberline {4.2}Histogrammverschiebung}{12}
-\contentsline {subsection}{\numberline {4.2.1}Implementation}{13}
-\contentsline {section}{\numberline {4.3}Histogrammspreizung}{14}
-\contentsline {subsection}{\numberline {4.3.1}Implementation}{15}
-\contentsline {chapter}{\numberline {5}Zus\IeC {\"a}tzliche Informationen zum Projekt}{18}
+\contentsline {chapter}{\numberline {1}\IeC {\"U}ber das Projekt}{4}
+\contentsline {section}{\numberline {1.1}Zielsetzung}{4}
+\contentsline {section}{\numberline {1.2}Zusammenfassung der Ver\IeC {\"a}nderungen}{4}
+\contentsline {chapter}{\numberline {2}Matlab GUI}{5}
+\contentsline {section}{\numberline {2.1}Communication setup}{5}
+\contentsline {section}{\numberline {2.2}write file}{7}
+\contentsline {section}{\numberline {2.3}filter options}{8}
+\contentsline {section}{\numberline {2.4}debug options}{9}
+\contentsline {chapter}{\numberline {3}RS-232 Kommando Empf\IeC {\"a}nger}{10}
+\contentsline {section}{\numberline {3.1}Ver\IeC {\"a}nderung der Hardware}{11}
+\contentsline {section}{\numberline {3.2}Daten\IeC {\"u}bertragung}{12}
+\contentsline {chapter}{\numberline {4}Bildverarbeitung}{13}
+\contentsline {section}{\numberline {4.1}Punktoperatoren}{13}
+\contentsline {section}{\numberline {4.2}Histogrammverschiebung}{13}
+\contentsline {subsection}{\numberline {4.2.1}Implementation}{14}
+\contentsline {section}{\numberline {4.3}Histogrammspreizung}{15}
+\contentsline {subsection}{\numberline {4.3.1}Implementation}{16}
+\contentsline {chapter}{\numberline {5}Verwendung des Projektes}{19}
+\contentsline {section}{\numberline {5.1}Ben\IeC {\"o}tigte Software}{19}
+\contentsline {section}{\numberline {5.2}Inhalt der CD}{19}
+\contentsline {section}{\numberline {5.3}Inbetriebnahme}{20}
+\contentsline {chapter}{\numberline {6}Zus\IeC {\"a}tzliche Informationen zum Projekt}{21}
